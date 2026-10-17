@@ -32,7 +32,8 @@ image:
 # certificate to /etc/prosody/certs as prosody:prosody (0640 crt, 0400 key), which coturn's user
 # (turnserver) can't read, so coturn logs "cannot find certificate file ... (1)" (EPERM).
 # Enabling this starts a small loop in the server container that adds turnserver to ssl-cert,
-# makes both files group-readable by ssl-cert, and restarts coturn when the certificate changes.
+# gives /etc/prosody/certs (prosody:adm 0750 in the image) and both files to group ssl-cert, and
+# restarts coturn when the certificate changes.
 # Off by default; see the README.
 turnCertFix:
   enabled: false

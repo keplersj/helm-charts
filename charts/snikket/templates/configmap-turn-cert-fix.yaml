@@ -18,6 +18,7 @@ data:
     domain="$(idn2 "$SNIKKET_DOMAIN" 2>/dev/null || echo "$SNIKKET_DOMAIN")"
     crt="/etc/prosody/certs/$domain.crt"
     key="/etc/prosody/certs/$domain.key"
+    certdir="/etc/prosody/certs"
     interval={{ .Values.turnCertFix.interval | int }}
     last=""
 
@@ -27,8 +28,11 @@ data:
         id -nG turnserver | tr ' ' '\n' | grep -qx ssl-cert \
           || usermod -aG ssl-cert turnserver || log "could not add turnserver to ssl-cert"
         # refresh-certs recreates both files as prosody:prosody every day, so repeat each pass.
-        chgrp ssl-cert "$crt" "$key" && chmod 0640 "$crt" "$key" \
-          || log "could not change group/mode of $crt, $key"
+        # The directory matters too: the image creates /etc/prosody/certs as prosody:adm 0750, so
+        # turnserver can't reach the files whatever their mode. Give the directory to ssl-cert
+        # (prosody is a member, so it keeps access) and leave its mode alone.
+        chgrp ssl-cert "$certdir" "$crt" "$key" && chmod 0640 "$crt" "$key" \
+          || log "could not change group/mode of $certdir, $crt, $key"
         # Restart coturn only when the certificate changed (first pass included), not on the
         # daily no-op re-import, which would drop active calls.
         cur="$(sha256sum "$crt" "$key" | sha256sum)"
