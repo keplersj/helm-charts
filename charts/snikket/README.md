@@ -42,7 +42,8 @@ kubectl -n snikket exec deploy/snikket -c server -- create-invite --admin --grou
   `cannot find certificate file: ... (1)` and `cannot start TLS and DTLS listeners`. The `(1)` is
   EPERM, not a missing file or a startup race; plain TURN on 3478 still works. Set
   `turnCertFix.enabled: true` to run a small loop in the `server` container that adds `turnserver`
-  to `ssl-cert`, makes the files group-readable by `ssl-cert`, and restarts coturn
+  to `ssl-cert`, gives `/etc/prosody/certs` and the files to group `ssl-cert` (the directory is
+  `prosody:adm 0750` in the image, so the files alone aren't enough), and restarts coturn
   (`s6-svc -t /etc/sv/coturn`) whenever the certificate changes. It also covers renewals, since
   the daily `refresh-certs` recreates the files with the old ownership. Off by default. It lets
   coturn read the TLS private key, which it needs for those listeners. Check with
