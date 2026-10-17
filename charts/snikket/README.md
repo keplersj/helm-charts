@@ -48,6 +48,25 @@ kubectl -n snikket exec deploy/snikket -c server -- create-invite --admin --grou
   coturn read the TLS private key, which it needs for those listeners. Check with
   `kubectl -n <ns> logs deploy/snikket -c server | grep -i -E 'cannot find|cannot start|turn-cert-fix'`
   and `openssl s_client -connect <domain>:5349`.
+- **cert-manager instead of the `certs` container:** set `certManager.enabled: true` and
+  `certManager.issuerRef.name` (a `ClusterIssuer` by default; change `kind` for an `Issuer`). The
+  chart renders a `Certificate` for `<domain>`, `groups.<domain>` and `share.<domain>`, drops the
+  `certs` container and the ACME challenge volume, and mounts the resulting Secret over
+  `/snikket/letsencrypt/live/<domain>/` as `fullchain.pem` / `privkey.pem`, the layout the stock
+  certbot flow writes, so the unmodified images use it. Notes:
+  - The pod itself serves port 80, so cert-manager's HTTP-01 solver (which needs an Ingress or
+    Gateway) doesn't fit. Use a DNS-01 issuer.
+  - To use a Secret you manage, set `certManager.createCertificate: false` and `secretName`
+    (needs `tls.crt` with the full chain, and `tls.key`).
+  - The Secret is mounted as a directory (not `subPath`), so renewals reach the pod. nginx only
+    reads certificates when it reloads, so the chart adds a loop in the `proxy` container that
+    runs `nginx -s reload` when the certificate changes (`certManager.reloadInterval`).
+    Prosody picks the new certificate up through upstream's daily `refresh-certs` import, so
+    allow up to a day after a renewal. cert-manager renews 30 days before expiry by default, so
+    the old certificate is still valid.
+  - Existing certbot files on the PVC are hidden by the mount; delete them later if you like.
+  - Internationalised domains: set `certManager.domainAscii` and `certManager.dnsNames` to the
+    ASCII (punycode) forms.
 - **Extra settings:** anything in `snikket.env` goes into the shared ConfigMap. See upstream's
   [advanced config](https://github.com/snikket-im/snikket-server/blob/master/docs/advanced/config.md).
 

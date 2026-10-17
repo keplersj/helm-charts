@@ -40,6 +40,41 @@ turnCertFix:
   # how long the files stay unreadable (for a coturn restart) after one.
   interval: 30
 
+# Get the certificate from cert-manager instead of the `certs` (certbot) container.
+# When enabled the `certs` container and the ACME challenge volume are not rendered. cert-manager
+# writes a kubernetes.io/tls Secret, which is mounted into the server and proxy containers as
+# /snikket/letsencrypt/live/<domain>/{fullchain,privkey}.pem, the layout the stock certbot flow
+# produces, so the unmodified images pick it up (prosody via the daily refresh-certs import, nginx
+# via a reload loop this chart adds). Needs cert-manager installed. Because the pod itself serves
+# port 80, use an issuer that doesn't need an Ingress/Gateway, i.e. DNS-01.
+# Switching an existing install over leaves the old certbot files on the PVC; they're hidden by
+# the mount and can be deleted later.
+certManager:
+  enabled: false
+  # -- Render a Certificate for the domain, groups.<domain> and share.<domain>. Set false to use a
+  # Secret you manage yourself (then set secretName); it needs tls.crt (full chain) and tls.key.
+  createCertificate: true
+  issuerRef:
+    name: ""
+    kind: ClusterIssuer
+    group: cert-manager.io
+  # -- Secret name. Defaults to <fullname>-tls.
+  secretName: ""
+  # -- Override the certificate names. Default: the domain, groups.<domain>, share.<domain>.
+  dnsNames: []
+  # -- ASCII (punycode) form of snikket.domain, used as the directory name. Only needed for
+  # internationalised domains; then also set dnsNames to the ASCII names.
+  domainAscii: ""
+  duration: ""
+  renewBefore: ""
+  # -- RSA 2048 is the most widely compatible for XMPP clients.
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    rotationPolicy: Always
+  # -- Seconds between checks for a renewed certificate (to reload nginx).
+  reloadInterval: 60
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""

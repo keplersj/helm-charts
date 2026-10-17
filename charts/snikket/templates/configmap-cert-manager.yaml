@@ -1,0 +1,33 @@
+{{- if .Values.certManager.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "snikket.fullname" . }}-cert-manager
+  labels:
+    {{- include "snikket.labels" . | nindent 4 }}
+data:
+  reload-nginx.sh: |
+    #!/bin/sh
+    # Runs in the proxy container, started by the postStart hook. The cert-manager Secret is
+    # mounted as a directory, so a renewal shows up here; nginx only reads certificates when it
+    # starts or reloads, so reload it when they change. Best effort: logs, never stops the container.
+    exec >>/proc/1/fd/1 2>&1 || true
+    dir="/snikket/letsencrypt/live/{{ include "snikket.domainAscii" . }}"
+    interval={{ .Values.certManager.reloadInterval | int }}
+    last=""
+    while :; do
+      if [ -f "$dir/fullchain.pem" ] && [ -f "$dir/privkey.pem" ]; then
+        cur="$(sha256sum "$dir/fullchain.pem" "$dir/privkey.pem" | sha256sum)"
+        if [ -n "$last" ] && [ "$cur" != "$last" ]; then
+          if nginx -t && nginx -s reload; then
+            echo "cert-manager: certificate changed; reloaded nginx"
+          else
+            echo "cert-manager: nginx reload failed; will retry"
+            cur=""
+          fi
+        fi
+        last="$cur"
+      fi
+      sleep "$interval"
+    done
+{{- end }}

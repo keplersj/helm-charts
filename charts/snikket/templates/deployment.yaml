@@ -1,4 +1,6 @@
 {{- $root := . -}}
+{{- $cm := .Values.certManager -}}
+{{- $certDir := printf "/snikket/letsencrypt/live/%s" (include "snikket.domainAscii" .) -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,6 +24,9 @@ spec:
         {{- end }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if $cm.enabled }}
+        checksum/cert-manager: {{ include (print $.Template.BasePath "/configmap-cert-manager.yaml") . | sha256sum }}
+        {{- end }}
         {{- if .Values.turnCertFix.enabled }}
         checksum/turn-cert-fix: {{ include (print $.Template.BasePath "/configmap-turn-cert-fix.yaml") . | sha256sum }}
         {{- end }}
@@ -70,6 +75,9 @@ spec:
           {{- end }}
           volumeMounts:
             - {name: data, mountPath: /snikket}
+            {{- if $cm.enabled }}
+            - {name: cert-manager-tls, mountPath: {{ $certDir }}, readOnly: true}
+            {{- end }}
             {{- if .Values.turnCertFix.enabled }}
             - {name: turn-cert-fix, mountPath: /opt/chart, readOnly: true}
             {{- end }}
@@ -92,11 +100,27 @@ spec:
           ports:
             - {name: http, containerPort: 80}
             - {name: https, containerPort: 443}
+          {{- if $cm.enabled }}
+          # nginx reads certificates only at (re)load, so reload it when cert-manager renews.
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - '(/bin/sh /opt/chart/reload-nginx.sh </dev/null >/dev/null 2>&1 &); exit 0'
+          {{- end }}
           volumeMounts:
             - {name: data, mountPath: /snikket}
+            {{- if $cm.enabled }}
+            - {name: cert-manager-tls, mountPath: {{ $certDir }}, readOnly: true}
+            - {name: cert-manager-scripts, mountPath: /opt/chart, readOnly: true}
+            {{- else }}
             - {name: acme-challenges, mountPath: /var/www/html/.well-known/acme-challenge}
+            {{- end }}
           resources:
             {{- toYaml .Values.resources.proxy | nindent 12 }}
+        {{- if not $cm.enabled }}
         - name: certs
           image: {{ include "snikket.image" (list $root "certs") }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -108,13 +132,27 @@ spec:
             - {name: acme-challenges, mountPath: /var/www/.well-known/acme-challenge}
           resources:
             {{- toYaml .Values.resources.certs | nindent 12 }}
+        {{- end }}
       volumes:
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "snikket.claimName" . }}
+        {{- if $cm.enabled }}
+        - name: cert-manager-tls
+          secret:
+            secretName: {{ include "snikket.tlsSecretName" . }}
+            defaultMode: 0400
+            items:
+              - {key: tls.crt, path: fullchain.pem}
+              - {key: tls.key, path: privkey.pem}
+        - name: cert-manager-scripts
+          configMap:
+            name: {{ include "snikket.fullname" . }}-cert-manager
+        {{- else }}
         - name: acme-challenges
           emptyDir:
             sizeLimit: 64Mi
+        {{- end }}
         {{- if .Values.turnCertFix.enabled }}
         - name: turn-cert-fix
           configMap:

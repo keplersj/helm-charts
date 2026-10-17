@@ -33,7 +33,9 @@ jobs:
               args=(); [[ -n "$v" ]] && args=(-f "$v")
               echo "::group::${name} ${v:-defaults}"
               helm lint --strict "$chart" "${args[@]}"
-              helm template ci "$chart" "${args[@]}" | kubeconform -strict -summary -
+              helm template ci "$chart" "${args[@]}" | kubeconform -strict -summary \
+                -schema-location default \
+                -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' -
               echo "::endgroup::"
             done
           done

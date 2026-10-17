@@ -1,0 +1,9 @@
+snikket:
+  domain: chat.example.com
+  adminEmail: admin@example.com
+certManager:
+  enabled: true
+  issuerRef:
+    name: letsencrypt-dns
+turnCertFix:
+  enabled: true
