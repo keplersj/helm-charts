@@ -64,14 +64,21 @@ service:
   annotations: {}
   loadBalancerIP: ""
   externalTrafficPolicy: ""
+  # -- Ports on the Service. targetPort is the container port (the pod shares one network
+  # namespace, so any container's port works). Override the whole list to match an existing
+  # Service exactly, e.g. when adopting one with a load balancer IP you need to keep.
   ports:
-    http: 80
-    https: 443
-    xmppClient: 5222
-    xmppServer: 5269
-    proxy65: 5000
-    stun: 3478
-    stunTls: 5349
+    - {name: http, port: 80, targetPort: 80, protocol: TCP}
+    - {name: https, port: 443, targetPort: 443, protocol: TCP}
+    - {name: xmpp-c2s, port: 5222, targetPort: 5222, protocol: TCP}
+    - {name: xmpp-s2s, port: 5269, targetPort: 5269, protocol: TCP}
+    - {name: proxy65, port: 5000, targetPort: 5000, protocol: TCP}
+    - {name: stun, port: 3478, targetPort: 3478, protocol: UDP}
+    - {name: stun-tcp, port: 3478, targetPort: 3478, protocol: TCP}
+    - {name: turn, port: 3479, targetPort: 3479, protocol: UDP}
+    - {name: turn-tcp, port: 3479, targetPort: 3479, protocol: TCP}
+    - {name: stun-tls, port: 5349, targetPort: 5349, protocol: TCP}
+    - {name: turn-tls, port: 5350, targetPort: 5350, protocol: TCP}
 
 # -- Run on the node's network (upstream's docker-compose does). Needed for TURN media relay
 # ports, which a Service can't reasonably expose.
