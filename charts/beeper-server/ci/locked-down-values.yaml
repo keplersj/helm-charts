@@ -1,0 +1,10 @@
+image:
+  digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+networkPolicy:
+  ingress:
+    allowNamespaces: [mcp-clients]
+ingress:
+  enabled: true
+  className: private
+  hosts:
+    - host: beeper.example.internal

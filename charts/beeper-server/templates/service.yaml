@@ -1,0 +1,22 @@
+{{- if and (ne .Values.service.type "ClusterIP") (not .Values.allowExternalService) }}
+{{- fail (printf "service.type=%s would expose an API that can read and send messages as the signed-in account. Set allowExternalService=true if that is really intended." .Values.service.type) }}
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "beeper-server.fullname" . }}
+  labels:
+    {{- include "beeper-server.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "beeper-server.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP

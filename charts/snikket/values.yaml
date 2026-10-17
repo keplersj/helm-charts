@@ -1,0 +1,82 @@
+snikket:
+  # -- (required) Your Snikket domain, e.g. chat.example.com. The groups. and share. subdomains
+  # must resolve to the same address.
+  domain: ""
+  # -- (required) Admin email; also used for Let's Encrypt.
+  adminEmail: ""
+  # -- Extra SNIKKET_* settings, rendered into the shared ConfigMap as-is, e.g.
+  # SNIKKET_TWEAK_IPV6: "1", SNIKKET_TWEAK_TURNSERVER_PORT_RANGE: "60000-60100".
+  # See https://github.com/snikket-im/snikket-server/blob/master/docs/advanced/config.md
+  env: {}
+
+image:
+  registry: docker.io
+  # -- Tag for all four images (they are released together). Defaults to .Chart.AppVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+  # -- Per-component overrides: repository, tag, digest.
+  server:
+    repository: snikket/snikket-server
+    digest: ""
+  portal:
+    repository: snikket/snikket-web-portal
+    digest: ""
+  proxy:
+    repository: snikket/snikket-web-proxy
+    digest: ""
+  certs:
+    repository: snikket/snikket-cert-manager
+    digest: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+podLabels: {}
+
+resources:
+  server:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {memory: 512Mi}
+  portal:
+    requests: {cpu: 25m, memory: 64Mi}
+    limits: {memory: 256Mi}
+  proxy:
+    requests: {cpu: 25m, memory: 32Mi}
+    limits: {memory: 128Mi}
+  certs:
+    requests: {cpu: 10m, memory: 32Mi}
+    limits: {memory: 128Mi}
+
+persistence:
+  # -- Use an existing PVC (e.g. one from a previous install) instead of creating one.
+  existingClaim: ""
+  storageClass: ""
+  accessModes: [ReadWriteOnce]
+  size: 10Gi
+  annotations: {}
+
+service:
+  # -- Snikket must be reachable from the internet (XMPP, HTTP for ACME, TURN), so most installs
+  # set LoadBalancer (or put the pod on hostNetwork). ClusterIP is only a safe default.
+  type: ClusterIP
+  annotations: {}
+  loadBalancerIP: ""
+  externalTrafficPolicy: ""
+  ports:
+    http: 80
+    https: 443
+    xmppClient: 5222
+    xmppServer: 5269
+    proxy65: 5000
+    stun: 3478
+    stunTls: 5349
+
+# -- Run on the node's network (upstream's docker-compose does). Needed for TURN media relay
+# ports, which a Service can't reasonably expose.
+hostNetwork: false
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

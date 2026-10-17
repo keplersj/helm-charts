@@ -1,0 +1,15 @@
+apiVersion: v2
+name: snikket
+description: Snikket XMPP server (server, web portal, web proxy and certificate manager) in one pod.
+type: application
+version: 0.1.0
+# Upstream tag shared by all four snikket/* images.
+appVersion: "stable.20260611"
+home: https://github.com/keplersj/helm-charts/tree/main/charts/snikket
+sources:
+  - https://github.com/snikket-im/snikket-server
+  - https://snikket.org/service/help/setup/
+keywords: [snikket, xmpp, prosody, chat]
+maintainers:
+  - name: keplersj
+    url: https://github.com/keplersj

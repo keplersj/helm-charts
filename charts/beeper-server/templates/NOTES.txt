@@ -1,0 +1,14 @@
+Beeper Server is running as {{ include "beeper-server.fullname" . }}-0 in {{ .Release.Namespace }}.
+
+It is NOT signed in yet. One-time bootstrap (interactive, needs a TTY):
+
+  kubectl -n {{ .Release.Namespace }} exec -it {{ include "beeper-server.fullname" . }}-0 -- \
+    beeper setup --remote http://127.0.0.1:{{ .Values.server.port }} --target server --email <you@example.com>
+
+Then see the chart README ("Bootstrap") for device verification, adding chat networks and
+getting an access token.
+
+In-cluster URL: http://{{ include "beeper-server.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}
+{{- if .Values.networkPolicy.enabled }}
+Allowed namespaces: {{ if .Values.networkPolicy.ingress.allowNamespaces }}{{ join ", " .Values.networkPolicy.ingress.allowNamespaces }}{{ else }}none (port-forward/exec only){{ end }}
+{{- end }}

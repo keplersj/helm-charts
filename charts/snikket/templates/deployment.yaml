@@ -1,0 +1,110 @@
+{{- $root := . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "snikket.fullname" . }}
+  labels:
+    {{- include "snikket.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  # One writer on the data volume; never run two pods at once.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "snikket.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "snikket.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- if .Values.hostNetwork }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      # The four containers share the pod's network namespace -- the same "all on localhost"
+      # layout upstream's docker-compose gets from network_mode: host.
+      containers:
+        - name: server
+          image: {{ include "snikket.image" (list $root "server") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "snikket.fullname" . }}
+          ports:
+            - {name: xmpp-c2s, containerPort: 5222}
+            - {name: xmpp-s2s, containerPort: 5269}
+            - {name: proxy65, containerPort: 5000}
+            - {name: stun, containerPort: 3478, protocol: UDP}
+            - {name: stun-tcp, containerPort: 3478, protocol: TCP}
+            - {name: stun-tls, containerPort: 5349}
+          volumeMounts:
+            - {name: data, mountPath: /snikket}
+          resources:
+            {{- toYaml .Values.resources.server | nindent 12 }}
+        - name: portal
+          image: {{ include "snikket.image" (list $root "portal") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "snikket.fullname" . }}
+          resources:
+            {{- toYaml .Values.resources.portal | nindent 12 }}
+        - name: proxy
+          image: {{ include "snikket.image" (list $root "proxy") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "snikket.fullname" . }}
+          ports:
+            - {name: http, containerPort: 80}
+            - {name: https, containerPort: 443}
+          volumeMounts:
+            - {name: data, mountPath: /snikket}
+            - {name: acme-challenges, mountPath: /var/www/html/.well-known/acme-challenge}
+          resources:
+            {{- toYaml .Values.resources.proxy | nindent 12 }}
+        - name: certs
+          image: {{ include "snikket.image" (list $root "certs") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "snikket.fullname" . }}
+          volumeMounts:
+            - {name: data, mountPath: /snikket}
+            - {name: acme-challenges, mountPath: /var/www/.well-known/acme-challenge}
+          resources:
+            {{- toYaml .Values.resources.certs | nindent 12 }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "snikket.claimName" . }}
+        - name: acme-challenges
+          emptyDir:
+            sizeLimit: 64Mi
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

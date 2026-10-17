@@ -1,0 +1,61 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $np := .Values.networkPolicy }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "beeper-server.fullname" . }}
+  labels:
+    {{- include "beeper-server.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "beeper-server.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    {{- if $np.egress.enabled }}
+    - Egress
+    {{- end }}
+  {{- if or $np.ingress.allowNamespaces $np.ingress.allowFrom }}
+  ingress:
+    - from:
+        {{- range $np.ingress.allowNamespaces }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . }}
+        {{- end }}
+        {{- with $np.ingress.allowFrom }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      ports:
+        - port: http
+          protocol: TCP
+  {{- else }}
+  # No allowed peers configured: all ingress denied.
+  ingress: []
+  {{- end }}
+  {{- if $np.egress.enabled }}
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $np.egress.dns.namespace }}
+          podSelector:
+            matchLabels:
+              {{- toYaml $np.egress.dns.podLabels | nindent 14 }}
+      ports:
+        - {port: 53, protocol: UDP}
+        - {port: 53, protocol: TCP}
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              {{- toYaml $np.egress.exceptCIDRs | nindent 14 }}
+      ports:
+        {{- range $np.egress.internetPorts }}
+        - {port: {{ . }}, protocol: TCP}
+        {{- end }}
+    {{- with $np.egress.extraTo }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end }}

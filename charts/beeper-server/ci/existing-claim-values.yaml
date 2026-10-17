@@ -1,0 +1,5 @@
+persistence:
+  existingClaim: beeper-data
+networkPolicy:
+  egress:
+    enabled: false

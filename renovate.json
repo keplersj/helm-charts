@@ -1,0 +1,31 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:best-practices"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "snikket appVersion tracks the upstream snikket/* stable.YYYYMMDD tag",
+      "managerFilePatterns": ["/^charts/snikket/Chart\\.yaml$/"],
+      "matchStrings": ["appVersion:\\s*\"?(?<currentValue>stable\\.[0-9]+)\"?"],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "snikket/snikket-server",
+      "versioningTemplate": "regex:^stable\\.(?<major>\\d+)$"
+    },
+    {
+      "customType": "regex",
+      "description": "beeper-server appVersion tracks ghcr.io/keplersj/beeper-server (<server>-cli<cli>)",
+      "managerFilePatterns": ["/^charts/beeper-server/Chart\\.yaml$/"],
+      "matchStrings": ["appVersion:\\s*\"?(?<currentValue>[^\"\\s]+)\"?"],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "ghcr.io/keplersj/beeper-server",
+      "versioningTemplate": "loose"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "An appVersion bump changes what the chart deploys, so it needs a chart version bump too. Bump it on the Renovate branch by hand before merging",
+      "matchManagers": ["custom.regex"],
+      "automerge": false
+    }
+  ]
+}

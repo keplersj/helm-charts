@@ -1,0 +1,7 @@
+Snikket for {{ .Values.snikket.domain }} is starting.
+
+DNS: {{ .Values.snikket.domain }}, groups.{{ .Values.snikket.domain }} and share.{{ .Values.snikket.domain }}
+must all point at this Service's external address before certificates can be issued.
+
+Create the first admin invite:
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "snikket.fullname" . }} -c server -- create-invite --admin --group default

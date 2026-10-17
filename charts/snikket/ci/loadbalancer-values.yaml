@@ -1,0 +1,9 @@
+snikket:
+  domain: chat.example.com
+  adminEmail: admin@example.com
+  env:
+    SNIKKET_TWEAK_IPV6: 1
+service:
+  type: LoadBalancer
+persistence:
+  existingClaim: snikket-data

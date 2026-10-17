@@ -1,0 +1,15 @@
+apiVersion: v2
+name: beeper-server
+description: Headless Beeper Server (Beeper Client API) with the beeper CLI, for single-user self-hosting.
+type: application
+version: 0.1.0
+# Image tag format: <beeper-server version>-cli<beeper CLI version>. Set by the first image build.
+appVersion: "UNRESOLVED-cli0.6.2"
+home: https://github.com/keplersj/helm-charts/tree/main/charts/beeper-server
+sources:
+  - https://github.com/keplersj/containers/tree/main/apps/beeper-server
+  - https://github.com/beeper/cli
+keywords: [beeper, matrix, chat, mcp]
+maintainers:
+  - name: keplersj
+    url: https://github.com/keplersj

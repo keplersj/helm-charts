@@ -1,0 +1,139 @@
+# -- Beeper Server holds a signed-in Beeper account, its encryption keys and every bridged chat
+# network's session. Anything that can reach port 23373 with the access token can read and send
+# messages as that account. Defaults here keep it cluster-internal and locked down; read
+# README.md before loosening any of them.
+
+image:
+  repository: ghcr.io/keplersj/beeper-server
+  # -- Defaults to .Chart.AppVersion.
+  tag: ""
+  # -- Pin by digest (sha256:...); rendered as tag@digest. Recommended.
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+server:
+  # -- Address beeper-server binds inside the pod. 0.0.0.0 so the Service can reach it; the
+  # NetworkPolicy below decides who actually can.
+  host: 0.0.0.0
+  port: 23373
+  # -- production or staging (Beeper's environments).
+  env: production
+  # -- Extra flags appended to beeper-server.
+  extraArgs: []
+  extraEnv: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 256Mi
+  limits:
+    memory: 1Gi
+
+# -- All CLI and server state (login, device verification / encryption keys, bridge sessions,
+# the CLI's stored access token) lives on this one volume, mounted at /data.
+persistence:
+  # -- Use an existing PVC instead of the StatefulSet's volumeClaimTemplate.
+  existingClaim: ""
+  storageClass: ""
+  accessModes: [ReadWriteOnce]
+  size: 5Gi
+  annotations: {}
+  # -- StatefulSet PVC retention. Keep Retain unless you mean to delete the account state.
+  retentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+
+service:
+  # -- ClusterIP only by default. Exposing this API outside the cluster requires
+  # allowExternalService: true as a deliberate opt-in.
+  type: ClusterIP
+  port: 23373
+  annotations: {}
+allowExternalService: false
+
+ingress:
+  # -- Off by default. If you enable it, use a private ingress class (e.g. a VPN/tailnet one);
+  # the API has no protection beyond the bearer token.
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  #  - host: beeper.example.internal
+  #    paths: [{path: /, pathType: Prefix}]
+  tls: []
+
+networkPolicy:
+  # -- Default-deny for the pod. Only the peers below may connect to the API port.
+  enabled: true
+  ingress:
+    # -- Namespaces (by name) whose pods may reach the API. Empty = nobody but yourself via
+    # kubectl port-forward / exec, which bypass NetworkPolicy.
+    allowNamespaces: []
+    # -- Raw NetworkPolicyPeer entries (podSelector / namespaceSelector / ipBlock) for anything finer.
+    allowFrom: []
+  egress:
+    # -- Restrict egress too: DNS to kube-dns, and TCP 80/443 to the internet only (Beeper's
+    # API, Matrix homeserver and bridge backends), never to in-cluster/private ranges.
+    enabled: true
+    dns:
+      namespace: kube-system
+      podLabels:
+        k8s-app: kube-dns
+    internetPorts: [443, 80]
+    # -- Ranges excluded from the internet rule. Covers RFC1918, CGNAT (incl. Tailscale) and
+    # link-local (cloud metadata).
+    exceptCIDRs:
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+      - 192.168.0.0/16
+      - 100.64.0.0/10
+      - 169.254.0.0/16
+    extraTo: []
+
+# -- /v1/info is the unauthenticated discovery endpoint. Readiness uses it; liveness only checks
+# the port is open, so a server that refuses non-loopback HTTP is reported unready, not killed.
+probes:
+  startup:
+    tcpSocket: {port: http}
+    periodSeconds: 5
+    failureThreshold: 60
+  liveness:
+    tcpSocket: {port: http}
+    periodSeconds: 20
+    failureThreshold: 3
+  readiness:
+    httpGet: {path: /v1/info, port: http}
+    periodSeconds: 10
+    failureThreshold: 3
+
+terminationGracePeriodSeconds: 60
+nodeSelector: {}
+tolerations: []
+affinity: {}

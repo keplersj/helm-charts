@@ -1,0 +1,41 @@
+name: release
+
+# Publishes every chart whose Chart.yaml version isn't in oci://ghcr.io/keplersj/charts yet.
+# Versions are immutable: to release, bump `version`.
+on:
+  push:
+    branches: [main]
+    paths: ["charts/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5
+      - name: Package + push new versions
+        env:
+          REGISTRY: oci://ghcr.io/keplersj/charts
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
+          for chart in charts/*/; do
+            name=$(helm show chart "$chart" | sed -n 's/^name: //p')
+            version=$(helm show chart "$chart" | sed -n 's/^version: //p')
+            if helm show chart "${REGISTRY}/${name}" --version "${version}" >/dev/null 2>&1; then
+              echo "${name} ${version} already published"; continue
+            fi
+            helm lint --strict "$chart"
+            helm package "$chart" --destination dist
+            helm push "dist/${name}-${version}.tgz" "${REGISTRY}"
+            echo "::notice::published ${name} ${version}"
+          done
