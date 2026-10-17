@@ -3,8 +3,8 @@ name: beeper-server
 description: Headless Beeper Server (Beeper Client API) with the beeper CLI, for single-user self-hosting.
 type: application
 version: 0.1.1
-# Image tag format: <beeper-server version>-cli<beeper CLI version>. Set by the first image build.
-appVersion: "UNRESOLVED-cli0.6.2"
+# Image tag format: <beeper-server version>-cli<beeper CLI version> (ghcr.io/keplersj/beeper-server).
+appVersion: "4.3.209-cli0.6.2"
 home: https://github.com/keplersj/helm-charts/tree/main/charts/beeper-server
 sources:
   - https://github.com/keplersj/containers/tree/main/apps/beeper-server
