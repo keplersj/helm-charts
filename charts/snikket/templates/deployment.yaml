@@ -51,7 +51,10 @@ spec:
             - {name: proxy65, containerPort: 5000}
             - {name: stun, containerPort: 3478, protocol: UDP}
             - {name: stun-tcp, containerPort: 3478, protocol: TCP}
+            - {name: turn, containerPort: 3479, protocol: UDP}
+            - {name: turn-tcp, containerPort: 3479, protocol: TCP}
             - {name: stun-tls, containerPort: 5349}
+            - {name: turn-tls, containerPort: 5350}
           volumeMounts:
             - {name: data, mountPath: /snikket}
           resources:

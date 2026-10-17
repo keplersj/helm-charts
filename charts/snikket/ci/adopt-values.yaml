@@ -1,0 +1,21 @@
+# Adopting an existing LoadBalancer Service (see README "Migrating from hand-written manifests").
+fullnameOverride: snikket
+snikket:
+  domain: chat.example.com
+  adminEmail: admin@example.com
+  env:
+    SNIKKET_TWEAK_IPV6: "1"
+image:
+  tag: dev
+  server: {repository: snikket/snikket-server, digest: "sha256:1111111111111111111111111111111111111111111111111111111111111111"}
+podLabels:
+  legacy.example/service: snikket
+persistence:
+  existingClaim: snikket-data
+service:
+  type: LoadBalancer
+  annotations:
+    helm.sh/resource-policy: keep
+  ports:
+    - {name: http, port: 80, targetPort: 80}
+    - {name: xmpp-c2s, port: 5222, targetPort: 5222}

@@ -42,9 +42,29 @@ kubectl -n snikket exec deploy/snikket -c server -- create-invite --admin --grou
 
 ## Migrating from hand-written manifests
 
-Use `persistence.existingClaim: <your-pvc>` and keep the PVC outside Helm. The Deployment's
-selector labels differ from typical hand-written ones, so the old Deployment must be deleted, not
-adopted (brief downtime; `Recreate` would cause that anyway). A Service whose external IP you want
-to keep can be adopted: add the `meta.helm.sh/release-name` / `meta.helm.sh/release-namespace`
-annotations and the `app.kubernetes.io/managed-by: Helm` label to it, and set `fullnameOverride` to
-its name, before installing.
+Use this to keep a LoadBalancer Service's external IP, which DNS points at, while moving to the
+chart. It takes two separate applies.
+
+1. **Mark the existing Service for adoption** and leave everything else alone. Add to it:
+   - annotations `meta.helm.sh/release-name: <release>`, `meta.helm.sh/release-namespace: <ns>`
+     and `helm.sh/resource-policy: keep`, so `helm uninstall` never deletes it or its IP
+   - label `app.kubernetes.io/managed-by: Helm`
+   - if a GitOps tool manages it, whatever stops that tool deleting it once it's no longer in
+     its sources (Flux: `kustomize.toolkit.fluxcd.io/prune: disabled`)
+2. **Install the chart** and stop applying the old Deployment, ConfigMap and Service:
+   - `fullnameOverride: <the Service's name>`
+   - `persistence.existingClaim: <the existing PVC>`
+   - `service.type`, `service.annotations` (include the three above) and `service.ports` copied
+     from the live Service, so the load balancer's configuration doesn't change
+   - `podLabels:` the old Deployment's pod labels, so the adopted Service selects the new pod even
+     if its old selector keys survive the merge
+   - `image.tag` / `image.<component>.digest` set to what is running now. Moving between `dev`,
+     `beta` and `stable` is a separate step; going backwards isn't safe against an existing
+     database.
+   - only the `SNIKKET_*` settings the old containers actually received. The chart passes every
+     `snikket.env` key to every container.
+
+The old Deployment is deleted, not adopted: the selectors differ and `selector` is immutable.
+Expect a short outage while the volume moves to the new pod; `Recreate` would cause that anyway.
+If the old Deployment still exists when Helm installs, the install fails on the name clash. Let it
+retry once the old one is gone.

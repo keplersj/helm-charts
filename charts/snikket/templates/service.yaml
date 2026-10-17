@@ -1,4 +1,3 @@
-{{- $p := .Values.service.ports }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -20,11 +19,9 @@ spec:
   selector:
     {{- include "snikket.selectorLabels" . | nindent 4 }}
   ports:
-    - {name: http, port: {{ $p.http }}, targetPort: http, protocol: TCP}
-    - {name: https, port: {{ $p.https }}, targetPort: https, protocol: TCP}
-    - {name: xmpp-c2s, port: {{ $p.xmppClient }}, targetPort: xmpp-c2s, protocol: TCP}
-    - {name: xmpp-s2s, port: {{ $p.xmppServer }}, targetPort: xmpp-s2s, protocol: TCP}
-    - {name: proxy65, port: {{ $p.proxy65 }}, targetPort: proxy65, protocol: TCP}
-    - {name: stun, port: {{ $p.stun }}, targetPort: stun, protocol: UDP}
-    - {name: stun-tcp, port: {{ $p.stun }}, targetPort: stun-tcp, protocol: TCP}
-    - {name: stun-tls, port: {{ $p.stunTls }}, targetPort: stun-tls, protocol: TCP}
+    {{- range .Values.service.ports }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .targetPort | default .port }}
+      protocol: {{ .protocol | default "TCP" }}
+    {{- end }}
