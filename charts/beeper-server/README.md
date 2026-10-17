@@ -112,15 +112,15 @@ TOKEN=...   # from step 5
 curl -fsS http://<release>-beeper-server.$NS.svc:23373/v1/info
 curl -fsS -H "Authorization: Bearer $TOKEN" http://<release>-beeper-server.$NS.svc:23373/v1/accounts
 
-# MCP (Streamable HTTP), if the server provides it
+# MCP (Streamable HTTP)
 curl -sS -X POST http://<release>-beeper-server.$NS.svc:23373/v0/mcp \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}'
 ```
 
-A JSON-RPC `result` with `serverInfo` means MCP works. A 404 means this server build has no MCP
-endpoint.
+A JSON-RPC `result` with `serverInfo` means MCP works. A JSON-RPC 401 means the token is wrong or
+missing.
 
 Also confirm the NetworkPolicy from a namespace that is **not** allowed. This should time out:
 
@@ -131,25 +131,24 @@ kubectl run np-test --rm -it --restart=Never --image=curlimages/curl -n default 
 
 ## MCP
 
-Beeper Desktop serves MCP at `/v0/mcp`. **Whether Beeper Server does is not documented**. The
-CLI never mentions MCP, but the Client API's `/v1/info` schema (shared by Desktop and Server)
-reports `server.mcp_enabled` and `endpoints.mcp`. Use step 1 and the curl above to find out on
-your build.
+Beeper Server serves MCP (Streamable HTTP) at **`/v0/mcp`**, with the same Bearer auth as the REST
+API. This was checked against Beeper Server 4.3.209 by the image's CI smoke test: `/v1/info`
+reports `server.mcp_enabled: true`, and an unauthenticated `POST /v0/mcp` gets a JSON-RPC `401
+Unauthorized`.
 
-If it doesn't, the smallest bridge is Beeper's official MCP server for the same API,
-[`@beeper/desktop-mcp`](https://www.npmjs.com/package/@beeper/desktop-mcp), run as
-`--transport=http` next to the server. It reads `BEEPER_DESKTOP_BASE_URL` and passes the caller's
-`Authorization: Bearer` through to the REST API. This chart doesn't include it yet.
+Point MCP clients at `http(s)://<service-or-ingress>/v0/mcp` with an `Authorization: Bearer <token>`
+header. The server advertises its endpoint and OAuth URLs as `http://127.0.0.1:<port>/...`, so OAuth
+discovery through an Ingress or Service URL won't work. Supply the token directly, minting it over
+`kubectl port-forward` as in step 5, where 127.0.0.1 is correct.
 
 ## Bind address
 
 The CLI launches beeper-server with `--host=127.0.0.1`. This chart passes `--host=0.0.0.0`
-(`server.host`) so the Service can reach it. That's a real server flag, so no proxy sidecar is
-needed. Desktop additionally gates non-local clients behind "Remote Access", and `/v1/info`
-reports a `server.remote_access` flag on Server too. If requests through the Service are refused
-while `exec`'d requests to 127.0.0.1 work, the server is enforcing that. The readiness probe
-(`GET /v1/info` from the kubelet) will then report the pod unready rather than restart it. Open
-an issue with the `/v1/info` output.
+(`server.host`), and that's sufficient: on 4.3.209 the server answers non-loopback clients even
+with `server.remote_access: false`, so no proxy sidecar is needed. That was verified for
+unauthenticated calls (`/v1/info`, the MCP 401) and not yet for authenticated ones. If
+authenticated calls through the Service are refused while the same call via `kubectl exec` to
+127.0.0.1 works, please open an issue with the `/v1/info` output.
 
 ## Backup and restore
 
