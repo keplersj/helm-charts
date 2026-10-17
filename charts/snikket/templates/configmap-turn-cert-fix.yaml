@@ -1,0 +1,46 @@
+{{- if .Values.turnCertFix.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "snikket.fullname" . }}-turn-cert-fix
+  labels:
+    {{- include "snikket.labels" . | nindent 4 }}
+data:
+  fix-turn-certs.sh: |
+    #!/bin/sh
+    # Runs in the server container (as root), started by the postStart hook. Lets coturn read the
+    # TLS certificate that `prosodyctl cert import` (refresh-certs) writes as prosody:prosody
+    # 0640/0400, then restarts coturn so its TLS listeners (5349/5350) start.
+    # Everything here is best effort: it only logs, and never stops the container.
+    exec >>/proc/1/fd/1 2>&1 || true
+    log() { echo "turn-cert-fix: $*"; }
+
+    domain="$(idn2 "$SNIKKET_DOMAIN" 2>/dev/null || echo "$SNIKKET_DOMAIN")"
+    crt="/etc/prosody/certs/$domain.crt"
+    key="/etc/prosody/certs/$domain.key"
+    interval={{ .Values.turnCertFix.interval | int }}
+    last=""
+
+    while :; do
+      if [ -f "$crt" ] && [ -f "$key" ]; then
+        # coturn (turnserver) picks up group membership when it is (re)started.
+        id -nG turnserver | tr ' ' '\n' | grep -qx ssl-cert \
+          || usermod -aG ssl-cert turnserver || log "could not add turnserver to ssl-cert"
+        # refresh-certs recreates both files as prosody:prosody every day, so repeat each pass.
+        chgrp ssl-cert "$crt" "$key" && chmod 0640 "$crt" "$key" \
+          || log "could not change group/mode of $crt, $key"
+        # Restart coturn only when the certificate changed (first pass included), not on the
+        # daily no-op re-import, which would drop active calls.
+        cur="$(sha256sum "$crt" "$key" | sha256sum)"
+        if [ "$cur" != "$last" ]; then
+          if s6-svc -t /etc/sv/coturn; then
+            log "certificate is readable by turnserver; restarted coturn"
+            last="$cur"
+          else
+            log "s6-svc -t /etc/sv/coturn failed; will retry"
+          fi
+        fi
+      fi
+      sleep "$interval"
+    done
+{{- end }}

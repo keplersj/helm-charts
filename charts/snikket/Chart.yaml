@@ -2,7 +2,7 @@ apiVersion: v2
 name: snikket
 description: Snikket XMPP server (server, web portal, web proxy and certificate manager) in one pod.
 type: application
-version: 0.2.0
+version: 0.2.1
 # Upstream tag shared by all four snikket/* images.
 appVersion: "stable.20260611"
 home: https://github.com/keplersj/helm-charts/tree/main/charts/snikket

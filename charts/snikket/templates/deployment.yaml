@@ -22,6 +22,9 @@ spec:
         {{- end }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if .Values.turnCertFix.enabled }}
+        checksum/turn-cert-fix: {{ include (print $.Template.BasePath "/configmap-turn-cert-fix.yaml") . | sha256sum }}
+        {{- end }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -55,8 +58,21 @@ spec:
             - {name: turn-tcp, containerPort: 3479, protocol: TCP}
             - {name: stun-tls, containerPort: 5349}
             - {name: turn-tls, containerPort: 5350}
+          {{- if .Values.turnCertFix.enabled }}
+          # Detached on purpose: kubelet waits for postStart to return, and the script loops.
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - '(/bin/sh /opt/chart/fix-turn-certs.sh </dev/null >/dev/null 2>&1 &); exit 0'
+          {{- end }}
           volumeMounts:
             - {name: data, mountPath: /snikket}
+            {{- if .Values.turnCertFix.enabled }}
+            - {name: turn-cert-fix, mountPath: /opt/chart, readOnly: true}
+            {{- end }}
           resources:
             {{- toYaml .Values.resources.server | nindent 12 }}
         - name: portal
@@ -99,6 +115,11 @@ spec:
         - name: acme-challenges
           emptyDir:
             sizeLimit: 64Mi
+        {{- if .Values.turnCertFix.enabled }}
+        - name: turn-cert-fix
+          configMap:
+            name: {{ include "snikket.fullname" . }}-turn-cert-fix
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

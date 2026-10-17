@@ -37,6 +37,17 @@ kubectl -n snikket exec deploy/snikket -c server -- create-invite --admin --grou
   (`SNIKKET_TWEAK_TURNSERVER_PORT_RANGE`) isn't practical behind a Service. For reliable calls,
   either set `hostNetwork: true` (and pin the node), or point Snikket at an external TURN server
   with the `SNIKKET_TWEAK_TURNSERVER*` settings in `snikket.env`.
+- **TURN over TLS (5349/5350) not starting:** the server image writes the certificate as
+  `prosody:prosody` (crt 0640, key 0400), which coturn's `turnserver` user can't read. coturn logs
+  `cannot find certificate file: ... (1)` and `cannot start TLS and DTLS listeners`. The `(1)` is
+  EPERM, not a missing file or a startup race; plain TURN on 3478 still works. Set
+  `turnCertFix.enabled: true` to run a small loop in the `server` container that adds `turnserver`
+  to `ssl-cert`, makes the files group-readable by `ssl-cert`, and restarts coturn
+  (`s6-svc -t /etc/sv/coturn`) whenever the certificate changes. It also covers renewals, since
+  the daily `refresh-certs` recreates the files with the old ownership. Off by default. It lets
+  coturn read the TLS private key, which it needs for those listeners. Check with
+  `kubectl -n <ns> logs deploy/snikket -c server | grep -i -E 'cannot find|cannot start|turn-cert-fix'`
+  and `openssl s_client -connect <domain>:5349`.
 - **Extra settings:** anything in `snikket.env` goes into the shared ConfigMap. See upstream's
   [advanced config](https://github.com/snikket-im/snikket-server/blob/master/docs/advanced/config.md).
 

@@ -28,6 +28,18 @@ image:
     repository: snikket/snikket-cert-manager
     digest: ""
 
+# Workaround for coturn's TLS listeners (5349/5350) not starting. The server image writes the
+# certificate to /etc/prosody/certs as prosody:prosody (0640 crt, 0400 key), which coturn's user
+# (turnserver) can't read, so coturn logs "cannot find certificate file ... (1)" (EPERM).
+# Enabling this starts a small loop in the server container that adds turnserver to ssl-cert,
+# makes both files group-readable by ssl-cert, and restarts coturn when the certificate changes.
+# Off by default; see the README.
+turnCertFix:
+  enabled: false
+  # -- Seconds between checks. The daily refresh-certs re-import resets ownership, so this is also
+  # how long the files stay unreadable (for a coturn restart) after one.
+  interval: 30
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
