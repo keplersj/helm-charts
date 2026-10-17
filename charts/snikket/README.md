@@ -37,6 +37,36 @@ kubectl -n snikket exec deploy/snikket -c server -- create-invite --admin --grou
   (`SNIKKET_TWEAK_TURNSERVER_PORT_RANGE`) isn't practical behind a Service. For reliable calls,
   either set `hostNetwork: true` (and pin the node), or point Snikket at an external TURN server
   with the `SNIKKET_TWEAK_TURNSERVER*` settings in `snikket.env`.
+- **TURN over TLS (5349/5350) not starting:** the server image writes the certificate as
+  `prosody:prosody` (crt 0640, key 0400), which coturn's `turnserver` user can't read. coturn logs
+  `cannot find certificate file: ... (1)` and `cannot start TLS and DTLS listeners`. The `(1)` is
+  EPERM, not a missing file or a startup race; plain TURN on 3478 still works. Set
+  `turnCertFix.enabled: true` to run a small loop in the `server` container that adds `turnserver`
+  to `ssl-cert`, makes the files group-readable by `ssl-cert`, and restarts coturn
+  (`s6-svc -t /etc/sv/coturn`) whenever the certificate changes. It also covers renewals, since
+  the daily `refresh-certs` recreates the files with the old ownership. Off by default. It lets
+  coturn read the TLS private key, which it needs for those listeners. Check with
+  `kubectl -n <ns> logs deploy/snikket -c server | grep -i -E 'cannot find|cannot start|turn-cert-fix'`
+  and `openssl s_client -connect <domain>:5349`.
+- **cert-manager instead of the `certs` container:** set `certManager.enabled: true` and
+  `certManager.issuerRef.name` (a `ClusterIssuer` by default; change `kind` for an `Issuer`). The
+  chart renders a `Certificate` for `<domain>`, `groups.<domain>` and `share.<domain>`, drops the
+  `certs` container and the ACME challenge volume, and mounts the resulting Secret over
+  `/snikket/letsencrypt/live/<domain>/` as `fullchain.pem` / `privkey.pem`, the layout the stock
+  certbot flow writes, so the unmodified images use it. Notes:
+  - The pod itself serves port 80, so cert-manager's HTTP-01 solver (which needs an Ingress or
+    Gateway) doesn't fit. Use a DNS-01 issuer.
+  - To use a Secret you manage, set `certManager.createCertificate: false` and `secretName`
+    (needs `tls.crt` with the full chain, and `tls.key`).
+  - The Secret is mounted as a directory (not `subPath`), so renewals reach the pod. nginx only
+    reads certificates when it reloads, so the chart adds a loop in the `proxy` container that
+    runs `nginx -s reload` when the certificate changes (`certManager.reloadInterval`).
+    Prosody picks the new certificate up through upstream's daily `refresh-certs` import, so
+    allow up to a day after a renewal. cert-manager renews 30 days before expiry by default, so
+    the old certificate is still valid.
+  - Existing certbot files on the PVC are hidden by the mount; delete them later if you like.
+  - Internationalised domains: set `certManager.domainAscii` and `certManager.dnsNames` to the
+    ASCII (punycode) forms.
 - **Extra settings:** anything in `snikket.env` goes into the shared ConfigMap. See upstream's
   [advanced config](https://github.com/snikket-im/snikket-server/blob/master/docs/advanced/config.md).
 

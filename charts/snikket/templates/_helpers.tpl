@@ -39,3 +39,12 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- define "snikket.claimName" -}}
 {{- .Values.persistence.existingClaim | default (printf "%s-data" (include "snikket.fullname" .)) }}
 {{- end }}
+
+{{/* The ASCII (punycode) form of the domain, which is the directory name Snikket looks for. */}}
+{{- define "snikket.domainAscii" -}}
+{{- .Values.certManager.domainAscii | default .Values.snikket.domain }}
+{{- end }}
+
+{{- define "snikket.tlsSecretName" -}}
+{{- .Values.certManager.secretName | default (printf "%s-tls" (include "snikket.fullname" .)) }}
+{{- end }}

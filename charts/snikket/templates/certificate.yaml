@@ -1,0 +1,31 @@
+{{- if and .Values.certManager.enabled .Values.certManager.createCertificate }}
+{{- $d := required "snikket.domain is required" .Values.snikket.domain }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "snikket.fullname" . }}
+  labels:
+    {{- include "snikket.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "snikket.tlsSecretName" . }}
+  issuerRef:
+    name: {{ required "certManager.issuerRef.name is required when certManager.createCertificate is true" .Values.certManager.issuerRef.name }}
+    kind: {{ .Values.certManager.issuerRef.kind }}
+    group: {{ .Values.certManager.issuerRef.group }}
+  dnsNames:
+    {{- if .Values.certManager.dnsNames }}
+    {{- toYaml .Values.certManager.dnsNames | nindent 4 }}
+    {{- else }}
+    - {{ $d | quote }}
+    - {{ printf "groups.%s" $d | quote }}
+    - {{ printf "share.%s" $d | quote }}
+    {{- end }}
+  {{- with .Values.certManager.duration }}
+  duration: {{ . }}
+  {{- end }}
+  {{- with .Values.certManager.renewBefore }}
+  renewBefore: {{ . }}
+  {{- end }}
+  privateKey:
+    {{- toYaml .Values.certManager.privateKey | nindent 4 }}
+{{- end }}
