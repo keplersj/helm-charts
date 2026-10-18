@@ -1,0 +1,79 @@
+# -- Runs Beeper's self-hosted bridges with bridge-manager (`bbctl run`). Each enabled bridge is a
+# container in ONE pod, because they all share one ReadWriteOnce volume at /data (bbctl.json plus
+# each bridge's database). Scaling beyond one replica is not supported.
+
+image:
+  repository: ghcr.io/beeper/bridge-manager
+  # -- Defaults to .Chart.AppVersion ("latest"; upstream publishes no release tags).
+  tag: ""
+  # -- Pin by digest (sha256:...); rendered as tag@digest. Strongly recommended.
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# -- Secret holding the Beeper (Matrix) access token that every bridge uses. Not created by this
+# chart. Must exist in the release namespace.
+matrixAccessToken:
+  existingSecret: beeper-secrets
+  key: MATRIX_ACCESS_TOKEN
+
+# -- Shared environment for every bridge, rendered into a ConfigMap.
+config:
+  BBCTL_CONFIG: /data/bbctl.json
+  BEEPER_ENV: prod
+  DATA_DIR: /data
+  DB_DIR: /data/db
+
+# -- Extra env for every bridge container (full EnvVar objects).
+extraEnv: []
+
+# -- One container per enabled bridge. The key is the container name; `bridge` is the bbctl bridge
+# name and defaults to `sh-mautrix-<key>`. Add `resources`/`extraArgs`/`extraEnv` per bridge to
+# override the shared defaults. Set `enabled: false` to drop a bridge (its data stays on the volume).
+bridges:
+  bluesky: {enabled: true}
+  discord: {enabled: true}
+  facebook: {enabled: true}
+  googlechat: {enabled: true}
+  instagram: {enabled: true}
+  linkedin: {enabled: true}
+  rcs: {enabled: true}
+  signal: {enabled: true}
+  slack: {enabled: true}
+  telegram: {enabled: true}
+  twitter: {enabled: true}
+  whatsapp: {enabled: true}
+
+# -- Default resources for each bridge container.
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+persistence:
+  # -- Use an existing PVC instead of creating one.
+  existingClaim: ""
+  storageClass: ""
+  accessModes: [ReadWriteOnce]
+  size: 10Gi
+  # -- Keep the volume on `helm uninstall` (bridge sessions and logins live here).
+  keep: true
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+podSecurityContext: {}
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: [ALL]
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

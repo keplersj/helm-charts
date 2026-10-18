@@ -1,0 +1,4 @@
+Bridges running: {{ range $n, $b := .Values.bridges }}{{ if $b.enabled }}{{ $n }} {{ end }}{{ end }}
+
+Each bridge needs the Beeper token in Secret "{{ .Values.matrixAccessToken.existingSecret }}" (key {{ .Values.matrixAccessToken.key }})
+and a bbctl.json at {{ .Values.config.BBCTL_CONFIG }} on the data volume. See the chart README.

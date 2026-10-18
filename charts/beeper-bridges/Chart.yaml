@@ -1,0 +1,15 @@
+apiVersion: v2
+name: beeper-bridges
+description: Self-hosted Beeper bridges (bridge-manager `bbctl run`), one container per bridge in a single pod.
+type: application
+version: 0.1.0
+# bridge-manager is published only as `latest`; pin with image.digest.
+appVersion: "latest"
+home: https://github.com/keplersj/helm-charts/tree/main/charts/beeper-bridges
+sources:
+  - https://github.com/beeper/bridge-manager
+  - https://github.com/mautrix
+keywords: [beeper, matrix, mautrix, bridges, chat]
+maintainers:
+  - name: keplersj
+    url: https://github.com/keplersj

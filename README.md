@@ -5,6 +5,7 @@ Helm charts by [@keplersj](https://github.com/keplersj), published as OCI artifa
 
 | Chart | App | Image |
 | --- | --- | --- |
+| [`beeper-bridges`](charts/beeper-bridges) | Self-hosted [Beeper bridges](https://github.com/beeper/bridge-manager) (`bbctl run`) | upstream `ghcr.io/beeper/bridge-manager` |
 | [`beeper-server`](charts/beeper-server) | Headless [Beeper Server](https://github.com/beeper/cli) (Beeper Client API) | [`ghcr.io/keplersj/beeper-server`](https://github.com/keplersj/containers/tree/main/apps/beeper-server) |
 | [`snikket`](charts/snikket) | [Snikket](https://snikket.org) XMPP server | upstream `snikket/*` |
 
