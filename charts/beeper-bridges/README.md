@@ -43,12 +43,11 @@ Disabling a bridge later removes the container only; its data stays on the volum
 ## Bridge notes
 
 `values.yaml` has an entry for all 15 official bridges (Meta is two containers, `facebook` and
-`instagram`). Most are plain Go binaries or, for Google Chat, a Python bridge, and need nothing
-extra. Four have caveats:
+`instagram`). Most, including `gvoice`, are prebuilt Go binaries (Google Chat is Python) and need
+nothing extra. Three have caveats:
 
 | Key | Bridge | Runs on Kubernetes? |
 |---|---|---|
-| `gvoice` | mautrix-gvoice | Yes. A prebuilt Linux binary, same as the other Go bridges. |
 | `heisenbridge` | Heisenbridge (IRC) | Yes. A Python bridge: `bbctl` creates a venv on `/data` and `pip install`s it at startup, so the pod needs PyPI egress. The image ships Python, as it does for Google Chat. |
 | `imessage` | mautrix-imessage | Only via BlueBubbles. On Linux `bbctl` offers just the BlueBubbles connector, which needs a BlueBubbles server on a Mac you run yourself. |
 | `imessagego` | beeper-imessage | Partly. The binary is built for Linux, but registration needs a code (`nac_token`) generated on a Mac. |
