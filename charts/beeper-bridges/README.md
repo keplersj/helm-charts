@@ -46,11 +46,11 @@ Disabling a bridge later removes the container only; its data stays on the volum
 `instagram`). Most, including `gvoice`, are prebuilt Go binaries (Google Chat is Python) and need
 nothing extra. Three have caveats:
 
-| Key | Bridge | Runs on Kubernetes? |
-|---|---|---|
-| `heisenbridge` | Heisenbridge (IRC) | Yes. A Python bridge: `bbctl` creates a venv on `/data` and `pip install`s it at startup, so the pod needs PyPI egress. The image ships Python, as it does for Google Chat. |
-| `imessage` | mautrix-imessage | Only via BlueBubbles. On Linux `bbctl` offers just the BlueBubbles connector, which needs a BlueBubbles server on a Mac you run yourself. |
-| `imessagego` | beeper-imessage | Partly. The binary is built for Linux, but registration needs a code (`nac_token`) generated on a Mac. |
+- `heisenbridge` (IRC) is a Python bridge: `bbctl` builds a venv on `/data` and `pip install`s it
+  at startup, so the pod needs PyPI egress. The image ships Python, as it does for Google Chat.
+- `imessage` works only through BlueBubbles: on Linux that is the only connector `bbctl` offers,
+  and it needs a BlueBubbles server on a Mac you run yourself.
+- `imessagego` has a Linux binary, but registration needs a code (`nac_token`) generated on a Mac.
 
 `imessage` and `imessagego` ask for connection details the first time a config is generated,
 and a pod has no terminal to answer. Generate the config once (the chart passes
@@ -65,9 +65,6 @@ bridges:
 ```
 
 Remove the `--param` arguments after the first start: they are visible in the pod spec.
-
-> The `gvoice`, `heisenbridge` and iMessage entries follow `bbctl`'s source; they have not been
-> run against a live Beeper account from this chart.
 
 ## Why one pod
 
