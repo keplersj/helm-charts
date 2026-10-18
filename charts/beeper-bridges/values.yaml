@@ -46,6 +46,24 @@ bridges:
   telegram: {enabled: true}
   twitter: {enabled: true}
   whatsapp: {enabled: true}
+  # Opt-in: not started by default so upgrading doesn't register new bridges on your account.
+  # See the README ("Opt-in bridges") for what each one needs.
+  gvoice: {enabled: false}
+  heisenbridge:
+    enabled: false
+    bridge: sh-heisenbridge
+    # pip installs heisenbridge into a venv on /data at startup; give it headroom.
+    resources:
+      requests: {cpu: 10m, memory: 128Mi}
+      limits: {cpu: 500m, memory: 512Mi}
+  # Linux supports only the BlueBubbles connector; needs a BlueBubbles server running on a Mac.
+  imessage:
+    enabled: false
+    bridge: sh-mautrix-imessage
+  # Needs an iMessage registration code (nac_token) from a Mac.
+  imessagego:
+    enabled: false
+    bridge: sh-imessagego
 
 # -- Default resources for each bridge container.
 resources:

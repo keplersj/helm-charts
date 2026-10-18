@@ -22,8 +22,7 @@ throwaway pod that mounts the same PVC.
 
 ## Choosing bridges
 
-`bridges.<name>` is a container. All twelve upstream bridges are on by default; trim what you
-don't use:
+`bridges.<name>` is a container. Twelve containers are on by default; trim what you don't use:
 
 ```yaml
 bridges:
@@ -37,6 +36,41 @@ bridges:
 ```
 
 Disabling a bridge removes the container only; its data stays on the volume.
+
+## Opt-in bridges
+
+`bbctl` lists 15 official bridges. Eleven are on by default (twelve containers, because Meta runs
+as separate `facebook` and `instagram` bridges); the other four ship as disabled entries so they are one flag away without surprising existing installs by
+registering new bridges on your Beeper account when you upgrade.
+
+| Key | Bridge | Runs on Kubernetes? |
+|---|---|---|
+| `gvoice` | mautrix-gvoice | Yes. A prebuilt Linux binary, same as the other Go bridges. |
+| `heisenbridge` | Heisenbridge (IRC) | Yes. A Python bridge: `bbctl` creates a venv on `/data` and `pip install`s it at startup, so the pod needs PyPI egress. The image ships Python, as it does for Google Chat. |
+| `imessage` | mautrix-imessage | Only via BlueBubbles. On Linux `bbctl` offers just the BlueBubbles connector, which needs a BlueBubbles server on a Mac you run yourself. |
+| `imessagego` | beeper-imessage | Partly. The binary is built for Linux, but registration needs a code (`nac_token`) generated on a Mac. |
+
+```yaml
+bridges:
+  gvoice: {enabled: true}
+```
+
+`imessage` and `imessagego` ask for connection details the first time a config is generated,
+and a pod has no terminal to answer. Generate the config once (the chart passes
+`--no-override-config`, so it is reused afterwards), either by running `bbctl run` in a
+throwaway pod on the same PVC, or by passing the values once:
+
+```yaml
+bridges:
+  imessage:
+    enabled: true
+    extraArgs: [--param, bluebubbles_url=https://bb.example.com, --param, bluebubbles_password=...]
+```
+
+Remove the `--param` arguments after the first start: they are visible in the pod spec.
+
+> The `gvoice`, `heisenbridge` and iMessage entries follow `bbctl`'s source; they have not been
+> run against a live Beeper account from this chart.
 
 ## Why one pod
 
