@@ -1,0 +1,11 @@
+# Adopting hand-written manifests (see README "Migrating from hand-written manifests").
+fullnameOverride: bridges
+persistence:
+  existingClaim: beeper-data
+bridges:
+  discord: {enabled: false}
+  signal:
+    enabled: true
+    extraArgs: ["--verbose"]
+    resources:
+      limits: {cpu: "1", memory: 512Mi}
