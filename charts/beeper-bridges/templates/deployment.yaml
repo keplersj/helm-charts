@@ -35,6 +35,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
+        {{- $enabled := 0 }}
+        {{- range $name, $b := .Values.bridges }}{{ if $b.enabled }}{{ $enabled = add1 $enabled }}{{ end }}{{ end }}
+        {{- if not $enabled }}{{ fail "beeper-bridges: no bridge is enabled; set bridges.<name>.enabled=true (see the README)" }}{{ end }}
         {{- range $name, $b := .Values.bridges }}
         {{- if $b.enabled }}
         - name: {{ $name }}

@@ -32,20 +32,39 @@ extraEnv: []
 
 # -- One container per enabled bridge. The key is the container name; `bridge` is the bbctl bridge
 # name and defaults to `sh-mautrix-<key>`. Add `resources`/`extraArgs`/`extraEnv` per bridge to
-# override the shared defaults. Set `enabled: false` to drop a bridge (its data stays on the volume).
+# override the shared defaults. Every bridge is off by default (which to run is a deployment
+# decision, and enabling one registers it on your Beeper account): set `enabled: true` on the ones
+# you want. Disabling later drops the container; its data stays on the volume.
 bridges:
-  bluesky: {enabled: true}
-  discord: {enabled: true}
-  facebook: {enabled: true}
-  googlechat: {enabled: true}
-  instagram: {enabled: true}
-  linkedin: {enabled: true}
-  rcs: {enabled: true}
-  signal: {enabled: true}
-  slack: {enabled: true}
-  telegram: {enabled: true}
-  twitter: {enabled: true}
-  whatsapp: {enabled: true}
+  bluesky: {enabled: false}
+  discord: {enabled: false}
+  facebook: {enabled: false}
+  googlechat: {enabled: false}
+  gvoice: {enabled: false}
+  instagram: {enabled: false}
+  linkedin: {enabled: false}
+  rcs: {enabled: false}
+  signal: {enabled: false}
+  slack: {enabled: false}
+  telegram: {enabled: false}
+  twitter: {enabled: false}
+  whatsapp: {enabled: false}
+  # The entries below have extra requirements; see the README ("Bridge notes").
+  heisenbridge:
+    enabled: false
+    bridge: sh-heisenbridge
+    # pip installs heisenbridge into a venv on /data at startup; give it headroom.
+    resources:
+      requests: {cpu: 10m, memory: 128Mi}
+      limits: {cpu: 500m, memory: 512Mi}
+  # Linux supports only the BlueBubbles connector; needs a BlueBubbles server running on a Mac.
+  imessage:
+    enabled: false
+    bridge: sh-mautrix-imessage
+  # Needs an iMessage registration code (nac_token) from a Mac.
+  imessagego:
+    enabled: false
+    bridge: sh-imessagego
 
 # -- Default resources for each bridge container.
 resources:

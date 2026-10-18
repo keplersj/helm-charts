@@ -3,7 +3,6 @@ fullnameOverride: bridges
 persistence:
   existingClaim: beeper-data
 bridges:
-  discord: {enabled: false}
   signal:
     enabled: true
     extraArgs: ["--verbose"]

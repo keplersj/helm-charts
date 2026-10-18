@@ -22,13 +22,15 @@ throwaway pod that mounts the same PVC.
 
 ## Choosing bridges
 
-`bridges.<name>` is a container. All twelve upstream bridges are on by default; trim what you
-don't use:
+`bridges.<name>` is a container. Every bridge is **off by default**: which bridges to run is a
+deployment decision, and enabling one registers it on your Beeper account. The chart refuses to
+render with none enabled. Turn on the ones you use:
 
 ```yaml
 bridges:
-  discord: {enabled: false}
+  signal: {enabled: true}
   whatsapp:
+    enabled: true
     resources: {limits: {memory: 512Mi}}
     extraArgs: [--verbose]
   matrix-thing:            # any other bbctl bridge
@@ -36,7 +38,33 @@ bridges:
     bridge: sh-mautrix-thing
 ```
 
-Disabling a bridge removes the container only; its data stays on the volume.
+Disabling a bridge later removes the container only; its data stays on the volume.
+
+## Bridge notes
+
+`values.yaml` has an entry for all 15 official bridges (Meta is two containers, `facebook` and
+`instagram`). Most, including `gvoice`, are prebuilt Go binaries (Google Chat is Python) and need
+nothing extra. Three have caveats:
+
+- `heisenbridge` (IRC) is a Python bridge: `bbctl` builds a venv on `/data` and `pip install`s it
+  at startup, so the pod needs PyPI egress. The image ships Python, as it does for Google Chat.
+- `imessage` works only through BlueBubbles: on Linux that is the only connector `bbctl` offers,
+  and it needs a BlueBubbles server on a Mac you run yourself.
+- `imessagego` has a Linux binary, but registration needs a code (`nac_token`) generated on a Mac.
+
+`imessage` and `imessagego` ask for connection details the first time a config is generated,
+and a pod has no terminal to answer. Generate the config once (the chart passes
+`--no-override-config`, so it is reused afterwards), either by running `bbctl run` in a
+throwaway pod on the same PVC, or by passing the values once:
+
+```yaml
+bridges:
+  imessage:
+    enabled: true
+    extraArgs: [--param, bluebubbles_url=https://bb.example.com, --param, bluebubbles_password=...]
+```
+
+Remove the `--param` arguments after the first start: they are visible in the pod spec.
 
 ## Why one pod
 
@@ -52,6 +80,7 @@ The shape this chart was extracted from: Deployment `bridges`, ConfigMap `beeper
    kustomization with pruning disabled (or keep the object unmanaged) so it is never deleted.
 2. Use `fullnameOverride: bridges`. The chart then creates Deployment `bridges` and ConfigMap
    `bridges-env`; delete the old Deployment and ConfigMap `beeper-env` in the same change.
-3. Expect a short outage while the old pod releases the volume.
+3. Enable every bridge the old Deployment ran (all are off by default).
+4. Expect a short outage while the old pod releases the volume.
 
 See `ci/adopt-values.yaml`.
