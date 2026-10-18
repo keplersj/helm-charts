@@ -40,6 +40,7 @@ bridges:
   discord: {enabled: false}
   facebook: {enabled: false}
   googlechat: {enabled: false}
+  gvoice: {enabled: false}
   instagram: {enabled: false}
   linkedin: {enabled: false}
   rcs: {enabled: false}
@@ -48,8 +49,7 @@ bridges:
   telegram: {enabled: false}
   twitter: {enabled: false}
   whatsapp: {enabled: false}
-  # See the README ("Bridge notes") for what the iMessage, Heisenbridge and gvoice entries need.
-  gvoice: {enabled: false}
+  # The entries below have extra requirements; see the README ("Bridge notes").
   heisenbridge:
     enabled: false
     bridge: sh-heisenbridge
