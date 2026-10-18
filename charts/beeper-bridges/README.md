@@ -22,12 +22,15 @@ throwaway pod that mounts the same PVC.
 
 ## Choosing bridges
 
-`bridges.<name>` is a container. Twelve containers are on by default; trim what you don't use:
+`bridges.<name>` is a container. Every bridge is **off by default**: which bridges to run is a
+deployment decision, and enabling one registers it on your Beeper account. The chart refuses to
+render with none enabled. Turn on the ones you use:
 
 ```yaml
 bridges:
-  discord: {enabled: false}
+  signal: {enabled: true}
   whatsapp:
+    enabled: true
     resources: {limits: {memory: 512Mi}}
     extraArgs: [--verbose]
   matrix-thing:            # any other bbctl bridge
@@ -35,13 +38,13 @@ bridges:
     bridge: sh-mautrix-thing
 ```
 
-Disabling a bridge removes the container only; its data stays on the volume.
+Disabling a bridge later removes the container only; its data stays on the volume.
 
-## Opt-in bridges
+## Bridge notes
 
-`bbctl` lists 15 official bridges. Eleven are on by default (twelve containers, because Meta runs
-as separate `facebook` and `instagram` bridges); the other four ship as disabled entries so they are one flag away without surprising existing installs by
-registering new bridges on your Beeper account when you upgrade.
+`values.yaml` has an entry for all 15 official bridges (Meta is two containers, `facebook` and
+`instagram`). Most are plain Go binaries or, for Google Chat, a Python bridge, and need nothing
+extra. Four have caveats:
 
 | Key | Bridge | Runs on Kubernetes? |
 |---|---|---|
@@ -49,11 +52,6 @@ registering new bridges on your Beeper account when you upgrade.
 | `heisenbridge` | Heisenbridge (IRC) | Yes. A Python bridge: `bbctl` creates a venv on `/data` and `pip install`s it at startup, so the pod needs PyPI egress. The image ships Python, as it does for Google Chat. |
 | `imessage` | mautrix-imessage | Only via BlueBubbles. On Linux `bbctl` offers just the BlueBubbles connector, which needs a BlueBubbles server on a Mac you run yourself. |
 | `imessagego` | beeper-imessage | Partly. The binary is built for Linux, but registration needs a code (`nac_token`) generated on a Mac. |
-
-```yaml
-bridges:
-  gvoice: {enabled: true}
-```
 
 `imessage` and `imessagego` ask for connection details the first time a config is generated,
 and a pod has no terminal to answer. Generate the config once (the chart passes
@@ -86,6 +84,7 @@ The shape this chart was extracted from: Deployment `bridges`, ConfigMap `beeper
    kustomization with pruning disabled (or keep the object unmanaged) so it is never deleted.
 2. Use `fullnameOverride: bridges`. The chart then creates Deployment `bridges` and ConfigMap
    `bridges-env`; delete the old Deployment and ConfigMap `beeper-env` in the same change.
-3. Expect a short outage while the old pod releases the volume.
+3. Enable every bridge the old Deployment ran (all are off by default).
+4. Expect a short outage while the old pod releases the volume.
 
 See `ci/adopt-values.yaml`.

@@ -32,22 +32,23 @@ extraEnv: []
 
 # -- One container per enabled bridge. The key is the container name; `bridge` is the bbctl bridge
 # name and defaults to `sh-mautrix-<key>`. Add `resources`/`extraArgs`/`extraEnv` per bridge to
-# override the shared defaults. Set `enabled: false` to drop a bridge (its data stays on the volume).
+# override the shared defaults. Every bridge is off by default (which to run is a deployment
+# decision, and enabling one registers it on your Beeper account): set `enabled: true` on the ones
+# you want. Disabling later drops the container; its data stays on the volume.
 bridges:
-  bluesky: {enabled: true}
-  discord: {enabled: true}
-  facebook: {enabled: true}
-  googlechat: {enabled: true}
-  instagram: {enabled: true}
-  linkedin: {enabled: true}
-  rcs: {enabled: true}
-  signal: {enabled: true}
-  slack: {enabled: true}
-  telegram: {enabled: true}
-  twitter: {enabled: true}
-  whatsapp: {enabled: true}
-  # Opt-in: not started by default so upgrading doesn't register new bridges on your account.
-  # See the README ("Opt-in bridges") for what each one needs.
+  bluesky: {enabled: false}
+  discord: {enabled: false}
+  facebook: {enabled: false}
+  googlechat: {enabled: false}
+  instagram: {enabled: false}
+  linkedin: {enabled: false}
+  rcs: {enabled: false}
+  signal: {enabled: false}
+  slack: {enabled: false}
+  telegram: {enabled: false}
+  twitter: {enabled: false}
+  whatsapp: {enabled: false}
+  # See the README ("Bridge notes") for what the iMessage, Heisenbridge and gvoice entries need.
   gvoice: {enabled: false}
   heisenbridge:
     enabled: false

@@ -1,2 +1,5 @@
+bridges:
+  signal: {enabled: true}
+  whatsapp: {enabled: true}
 image:
   digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
