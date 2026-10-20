@@ -68,16 +68,18 @@ Remove the `--param` arguments after the first start: they are visible in the po
 
 ## External bridges (non-bbctl)
 
-A bridge with an `image` is run as that image instead of `bbctl run`. This is for community
-bridgev2 bridges such as [matrix-tiktok](https://github.com/httpjamesm/matrix-tiktok), which has
-a `tiktok` entry:
+`externalBridges.<name>` runs an image you choose instead of `bbctl run`: for community bridgev2
+bridges such as [matrix-tiktok](https://github.com/httpjamesm/matrix-tiktok). The chart ships no
+entries; you opt in per release.
 
 ```yaml
-bridges:
+externalBridges:
   tiktok:
     enabled: true
     image:
-      digest: sha256:...          # amd64-only image; pin it
+      repository: ghcr.io/httpjamesm/matrix-tiktok
+      tag: v1.1.0
+      digest: sha256:...          # the published image is amd64-only; pin it
     configSecret: {name: matrix-tiktok-config}
 ```
 
@@ -87,8 +89,9 @@ bridges:
 2. Store it in the Secret named by `configSecret` (key `config.yaml`), for example with External
    Secrets. The chart never creates it.
 3. The bridge gets a private directory on the shared volume (`external/<name>`) as its `/data`,
-   plus the config mounted read-only at `/data/config.yaml`. It runs as `runAsUser` (default
-   10001); a short init container creates the directory with that owner.
+   plus the config mounted read-only (`0444`: it runs as a non-root uid with no fsGroup) at
+   `/data/config.yaml`. It runs as `runAsUser` (default 10001); a short init container creates
+   the directory with that owner.
 4. Other keys: `command`, `args`, `extraEnv`, `resources`, `configPath`. The Beeper token is not
    injected: the config carries it.
 

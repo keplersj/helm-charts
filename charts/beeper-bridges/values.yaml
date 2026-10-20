@@ -50,19 +50,6 @@ bridges:
   twitter: {enabled: false}
   whatsapp: {enabled: false}
   # The entries below have extra requirements; see the README ("Bridge notes").
-  # Not a bbctl bridge: a community bridgev2 bridge with its own image, run from a config you
-  # generate once with `bbctl config --type bridgev2 sh-tiktok`. `image` is what marks a bridge
-  # as external. The image is amd64-only. Set `image.digest` (and `configSecret.name`) to enable.
-  tiktok:
-    enabled: false
-    image:
-      repository: ghcr.io/httpjamesm/matrix-tiktok
-      tag: v1.1.0
-      digest: ""
-    # Secret holding the generated bridgev2 config. Mounted read-only at /data/config.yaml; the
-    # bridge's /data is a private subdirectory of the shared volume (external/tiktok), so the
-    # database path in the config must be under /data.
-    configSecret: {name: "", key: config.yaml}
   heisenbridge:
     enabled: false
     bridge: sh-heisenbridge
@@ -78,6 +65,14 @@ bridges:
   imessagego:
     enabled: false
     bridge: sh-imessagego
+
+# -- Bridges that are not run by bbctl: you supply the image (typically a community bridgev2
+# bridge such as matrix-tiktok), and a config Secret holding the output of
+# `bbctl config --type bridgev2 sh-<name>`. Same key rules as `bridges` (container name; off
+# unless `enabled`), and a key may not appear in both maps. See the README. Entry fields:
+#   enabled, image: {repository, tag, digest}, command, args, extraEnv, resources,
+#   configSecret: {name, key: config.yaml}, configPath: /data/config.yaml, runAsUser: 10001
+externalBridges: {}
 
 # -- Image for the init container that prepares each external bridge's directory (needs `sh`,
 # `install`). Only rendered when an external bridge is enabled.

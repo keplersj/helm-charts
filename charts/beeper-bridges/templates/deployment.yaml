@@ -35,7 +35,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- $external := dict }}
-      {{- range $name, $b := .Values.bridges }}{{ if and $b.enabled $b.image }}{{ $_ := set $external $name $b }}{{ end }}{{ end }}
+      {{- range $name, $b := .Values.externalBridges }}{{ if $b.enabled }}{{ $_ := set $external $name $b }}{{ end }}{{ end }}
       {{- if $external }}
       initContainers:
         # External bridges run as their own non-root uid; give each its private directory on the
@@ -62,10 +62,10 @@ spec:
       containers:
         {{- $enabled := 0 }}
         {{- range $name, $b := .Values.bridges }}{{ if $b.enabled }}{{ $enabled = add1 $enabled }}{{ end }}{{ end }}
+        {{- range $name, $b := .Values.externalBridges }}{{ if $b.enabled }}{{ $enabled = add1 $enabled }}{{ if hasKey $.Values.bridges $name }}{{ fail (printf "beeper-bridges: %q is in both bridges and externalBridges" $name) }}{{ end }}{{ end }}{{ end }}
         {{- if not $enabled }}{{ fail "beeper-bridges: no bridge is enabled; set bridges.<name>.enabled=true (see the README)" }}{{ end }}
-        {{- range $name, $b := .Values.bridges }}
+        {{- range $name, $b := .Values.externalBridges }}
         {{- if $b.enabled }}
-        {{- if $b.image }}
         - name: {{ $name }}
           image: {{ include "beeper-bridges.externalImage" $b | quote }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
@@ -100,7 +100,10 @@ spec:
               subPath: {{ $b.configSecret.key | default "config.yaml" }}
               readOnly: true
             {{- end }}
-        {{- else }}
+        {{- end }}
+        {{- end }}
+        {{- range $name, $b := .Values.bridges }}
+        {{- if $b.enabled }}
         - name: {{ $name }}
           image: {{ include "beeper-bridges.image" $ | quote }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
@@ -136,7 +139,6 @@ spec:
               mountPath: /data
         {{- end }}
         {{- end }}
-        {{- end }}
       restartPolicy: Always
       {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -154,8 +156,8 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "beeper-bridges.claimName" . }}
-        {{- range $name, $b := .Values.bridges }}
-        {{- if and $b.enabled $b.image $b.configSecret }}
+        {{- range $name, $b := .Values.externalBridges }}
+        {{- if and $b.enabled $b.configSecret }}
         - name: {{ $name }}-config
           secret:
             secretName: {{ $b.configSecret.name | required (printf "beeper-bridges: bridges.%s.configSecret.name is required" $name) }}
