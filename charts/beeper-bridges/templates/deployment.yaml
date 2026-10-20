@@ -34,10 +34,74 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- $external := dict }}
+      {{- range $name, $b := .Values.externalBridges }}{{ if $b.enabled }}{{ $_ := set $external $name $b }}{{ end }}{{ end }}
+      {{- if $external }}
+      initContainers:
+        # External bridges run as their own non-root uid; give each its private directory on the
+        # shared volume (created root-owned by the subPath mount otherwise).
+        - name: prepare-external
+          image: {{ $.Values.initImage }}
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -e
+              {{- range $name, $b := $external }}
+              install -d -o {{ $b.runAsUser | default 10001 }} -g {{ $b.runAsUser | default 10001 }} -m 0700 /data/external/{{ $name }}
+              {{- end }}
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+              add: [CHOWN, FOWNER, DAC_OVERRIDE]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      {{- end }}
       containers:
         {{- $enabled := 0 }}
         {{- range $name, $b := .Values.bridges }}{{ if $b.enabled }}{{ $enabled = add1 $enabled }}{{ end }}{{ end }}
+        {{- range $name, $b := .Values.externalBridges }}{{ if $b.enabled }}{{ $enabled = add1 $enabled }}{{ if hasKey $.Values.bridges $name }}{{ fail (printf "beeper-bridges: %q is in both bridges and externalBridges" $name) }}{{ end }}{{ end }}{{ end }}
         {{- if not $enabled }}{{ fail "beeper-bridges: no bridge is enabled; set bridges.<name>.enabled=true (see the README)" }}{{ end }}
+        {{- range $name, $b := .Values.externalBridges }}
+        {{- if $b.enabled }}
+        - name: {{ $name }}
+          image: {{ include "beeper-bridges.externalImage" $b | quote }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          {{- with $b.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $b.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $b.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml ($b.resources | default $.Values.resources) | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: {{ $b.runAsUser | default 10001 }}
+            runAsGroup: {{ $b.runAsUser | default 10001 }}
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+              subPath: external/{{ $name }}
+            {{- if $b.configSecret }}
+            - name: {{ $name }}-config
+              mountPath: {{ $b.configPath | default "/data/config.yaml" }}
+              subPath: {{ $b.configSecret.key | default "config.yaml" }}
+              readOnly: true
+            {{- end }}
+        {{- end }}
+        {{- end }}
         {{- range $name, $b := .Values.bridges }}
         {{- if $b.enabled }}
         - name: {{ $name }}
@@ -92,3 +156,11 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "beeper-bridges.claimName" . }}
+        {{- range $name, $b := .Values.externalBridges }}
+        {{- if and $b.enabled $b.configSecret }}
+        - name: {{ $name }}-config
+          secret:
+            secretName: {{ $b.configSecret.name | required (printf "beeper-bridges: bridges.%s.configSecret.name is required" $name) }}
+            defaultMode: 0444
+        {{- end }}
+        {{- end }}

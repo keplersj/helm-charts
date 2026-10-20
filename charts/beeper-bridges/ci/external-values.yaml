@@ -1,0 +1,11 @@
+# An external (non-bbctl) bridge alongside a bbctl one.
+bridges:
+  signal: {enabled: true}
+externalBridges:
+  tiktok:
+    enabled: true
+    image:
+      repository: ghcr.io/httpjamesm/matrix-tiktok
+      tag: v1.1.0
+      digest: sha256:7dbfff6b6ac34d8c721b9c13c75bf4d3f6901f15d3e7fe96b85d51bc51a71009
+    configSecret: {name: matrix-tiktok-config}

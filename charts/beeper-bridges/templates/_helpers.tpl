@@ -34,3 +34,9 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- define "beeper-bridges.claimName" -}}
 {{- .Values.persistence.existingClaim | default (printf "%s-data" (include "beeper-bridges.fullname" .)) }}
 {{- end }}
+
+{{- define "beeper-bridges.externalImage" -}}
+{{- $i := .image | required "beeper-bridges: externalBridges.<name>.image.repository is required" -}}
+{{- $_ := $i.repository | required "beeper-bridges: externalBridges.<name>.image.repository is required" -}}
+{{- if $i.digest }}{{ printf "%s:%s@%s" $i.repository ($i.tag | default "latest") $i.digest }}{{ else }}{{ printf "%s:%s" $i.repository ($i.tag | default "latest") }}{{ end -}}
+{{- end }}

@@ -66,6 +66,18 @@ bridges:
     enabled: false
     bridge: sh-imessagego
 
+# -- Bridges that are not run by bbctl: you supply the image (typically a community bridgev2
+# bridge such as matrix-tiktok), and a config Secret holding the output of
+# `bbctl config --type bridgev2 sh-<name>`. Same key rules as `bridges` (container name; off
+# unless `enabled`), and a key may not appear in both maps. See the README. Entry fields:
+#   enabled, image: {repository, tag, digest}, command, args, extraEnv, resources,
+#   configSecret: {name, key: config.yaml}, configPath: /data/config.yaml, runAsUser: 10001
+externalBridges: {}
+
+# -- Image for the init container that prepares each external bridge's directory (needs `sh`,
+# `install`). Only rendered when an external bridge is enabled.
+initImage: busybox:1.37.0
+
 # -- Default resources for each bridge container.
 resources:
   requests:
