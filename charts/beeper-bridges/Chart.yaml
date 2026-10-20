@@ -2,7 +2,7 @@ apiVersion: v2
 name: beeper-bridges
 description: Self-hosted Beeper bridges (bridge-manager `bbctl run`), one container per bridge in a single pod.
 type: application
-version: 0.2.0
+version: 0.3.0
 # bridge-manager is published only as `latest`; pin with image.digest.
 appVersion: "latest"
 home: https://github.com/keplersj/helm-charts/tree/main/charts/beeper-bridges

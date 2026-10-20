@@ -66,6 +66,34 @@ bridges:
 
 Remove the `--param` arguments after the first start: they are visible in the pod spec.
 
+## External bridges (non-bbctl)
+
+A bridge with an `image` is run as that image instead of `bbctl run`. This is for community
+bridgev2 bridges such as [matrix-tiktok](https://github.com/httpjamesm/matrix-tiktok), which has
+a `tiktok` entry:
+
+```yaml
+bridges:
+  tiktok:
+    enabled: true
+    image:
+      digest: sha256:...          # amd64-only image; pin it
+    configSecret: {name: matrix-tiktok-config}
+```
+
+1. Generate the config once, on a workstation: `bbctl config --type bridgev2 -o config.yaml sh-tiktok`.
+   This registers the bridge on your Beeper account and the file holds its tokens. Put the bridge's
+   own settings under `network:`, and point any database path at `/data`.
+2. Store it in the Secret named by `configSecret` (key `config.yaml`), for example with External
+   Secrets. The chart never creates it.
+3. The bridge gets a private directory on the shared volume (`external/<name>`) as its `/data`,
+   plus the config mounted read-only at `/data/config.yaml`. It runs as `runAsUser` (default
+   10001); a short init container creates the directory with that owner.
+4. Other keys: `command`, `args`, `extraEnv`, `resources`, `configPath`. The Beeper token is not
+   injected: the config carries it.
+
+Log in through the bridge bot DM (`@sh-<name>bot:beeper.local`).
+
 ## Why one pod
 
 The bridges share a ReadWriteOnce volume, so they must schedule together. The Deployment uses
