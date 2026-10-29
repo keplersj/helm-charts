@@ -1,12 +1,19 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:best-practices"],
+  "extends": [
+    "config:best-practices",
+    ":semanticCommits"
+  ],
   "customManagers": [
     {
       "customType": "regex",
       "description": "snikket appVersion tracks the upstream snikket/* stable.YYYYMMDD tag",
-      "managerFilePatterns": ["/^charts/snikket/Chart\\.yaml$/"],
-      "matchStrings": ["appVersion:\\s*\"?(?<currentValue>stable\\.[0-9]+)\"?"],
+      "managerFilePatterns": [
+        "/^charts/snikket/Chart\\.yaml$/"
+      ],
+      "matchStrings": [
+        "appVersion:\\s*\"?(?<currentValue>stable\\.[0-9]+)\"?"
+      ],
       "datasourceTemplate": "docker",
       "depNameTemplate": "snikket/snikket-server",
       "versioningTemplate": "regex:^stable\\.(?<major>\\d+)$"
@@ -14,8 +21,12 @@
     {
       "customType": "regex",
       "description": "beeper-server appVersion tracks ghcr.io/keplersj/beeper-server (<server>-cli<cli>)",
-      "managerFilePatterns": ["/^charts/beeper-server/Chart\\.yaml$/"],
-      "matchStrings": ["appVersion:\\s*\"?(?<currentValue>[^\"\\s]+)\"?"],
+      "managerFilePatterns": [
+        "/^charts/beeper-server/Chart\\.yaml$/"
+      ],
+      "matchStrings": [
+        "appVersion:\\s*\"?(?<currentValue>[^\"\\s]+)\"?"
+      ],
       "datasourceTemplate": "docker",
       "depNameTemplate": "ghcr.io/keplersj/beeper-server",
       "versioningTemplate": "loose"
@@ -23,9 +34,73 @@
   ],
   "packageRules": [
     {
-      "description": "An appVersion bump changes what the chart deploys, so it needs a chart version bump too. Bump it on the Renovate branch by hand before merging",
-      "matchManagers": ["custom.regex"],
-      "automerge": false
+      "description": "appVersion updates change released chart contents: review by hand, wait for upstream to settle, and use a conventional commit scoped to the chart",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "automerge": false,
+      "minimumReleaseAge": "3 days",
+      "semanticCommitType": "fix",
+      "semanticCommitScope": "{{parentDir}}"
+    },
+    {
+      "description": "snikket: appVersion bumps change what the chart deploys, so Renovate also bumps the chart version (patch). The release workflow publishes on a new version",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchFileNames": [
+        "charts/snikket/Chart.yaml"
+      ],
+      "bumpVersions": [
+        {
+          "name": "snikket chart version",
+          "filePatterns": [
+            "/^charts/snikket/Chart\\.yaml$/"
+          ],
+          "matchStrings": [
+            "(?m)^version:\\s*(?<version>[0-9][^\\s]*)"
+          ],
+          "bumpType": "patch"
+        }
+      ]
+    },
+    {
+      "description": "beeper-server: appVersion bumps change what the chart deploys, so Renovate also bumps the chart version (patch). The release workflow publishes on a new version",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchFileNames": [
+        "charts/beeper-server/Chart.yaml"
+      ],
+      "bumpVersions": [
+        {
+          "name": "beeper-server chart version",
+          "filePatterns": [
+            "/^charts/beeper-server/Chart\\.yaml$/"
+          ],
+          "matchStrings": [
+            "(?m)^version:\\s*(?<version>[0-9][^\\s]*)"
+          ],
+          "bumpType": "patch"
+        }
+      ]
+    },
+    {
+      "description": "CI tooling cannot change a published chart: automerge once lint passes",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "patch",
+        "minor"
+      ],
+      "automerge": true,
+      "semanticCommitType": "ci",
+      "semanticCommitScope": "deps"
     }
+  ],
+  "labels": [
+    "dependencies"
   ]
 }
