@@ -34,7 +34,8 @@ matching `extraEnv`/mount yourself).
   password is embedded in connection URIs, so keep it alphanumeric. The role needs to be able to
   create tables in both databases.
 - `redis`: the password is embedded in `redis://` URLs; keep it URL-safe. Each concern uses its own
-  database number (`redis.databases.*`).
+  database number (`redis.databases.*`). Database numbers are global to the server: pick numbers no
+  other app uses (an app sharing db 0 with another Celery consumer will steal its tasks).
 - `s3.checksumWhenRequired` (default on) works around boto3's default checksum headers, which
   Cloudflare R2 rejects.
 - `oidc`: register `<baseURL>/api/oidc/callback/custom` as the redirect URI if the provider does

@@ -124,17 +124,18 @@ ingress:
     - host: gramps.example.com
   tls: []
 
+# The frontend root is unauthenticated; /api/metadata/ answers 401 without a token.
 probes:
   liveness:
     httpGet:
-      path: /api/metadata/
+      path: /
       port: http
-    initialDelaySeconds: 30
+    initialDelaySeconds: 60
     periodSeconds: 30
     timeoutSeconds: 10
   readiness:
     httpGet:
-      path: /api/metadata/
+      path: /
       port: http
     periodSeconds: 10
     timeoutSeconds: 5
