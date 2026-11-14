@@ -2,7 +2,8 @@ nameOverride: ""
 fullnameOverride: ""
 
 # Web + Celery run as containers of ONE pod because exports/reports are written by Celery and
-# served by the web process through a shared emptyDir. Scale with replicaCount (each pod gets both).
+# served by the web process through a shared emptyDir. The tree registry volume (persistence) is
+# ReadWriteOnce, so keep replicaCount at 1 unless it is backed by RWX storage.
 replicaCount: 1
 
 image:
@@ -92,6 +93,18 @@ oidc:
     admin: ""
     editor: ""
     member: ""
+
+# Gramps keeps a small registry directory per tree (its name, backend and settings) on local disk,
+# even when the tree itself is in PostgreSQL. Without this volume the registry is lost on restart
+# and trees can't be created at all (the directory's parent doesn't exist). It is tiny.
+persistence:
+  enabled: true
+  # Use an existing PVC instead of creating one.
+  existingClaim: ""
+  size: 1Gi
+  storageClass: ""
+  annotations: {}
+  mountPath: /root/.gramps/grampsdb
 
 celery:
   enabled: true

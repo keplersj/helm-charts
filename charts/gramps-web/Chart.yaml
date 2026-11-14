@@ -1,8 +1,8 @@
 apiVersion: v2
 name: gramps-web
-description: Gramps Web genealogy server with a Celery worker, for stateless deployments (Postgres, S3 media, Redis-compatible caches).
+description: Gramps Web genealogy server with a Celery worker, for deployments backed by Postgres, S3 media and Redis-compatible caches.
 type: application
-version: 0.1.1
+version: 0.1.2
 # Image tag of ghcr.io/gramps-project/grampsweb.
 # renovate: image=ghcr.io/gramps-project/grampsweb
 appVersion: "26.11.2"
