@@ -1,7 +1,7 @@
 # gramps-web
 
 [Gramps Web](https://www.grampsweb.org) (`ghcr.io/gramps-project/grampsweb`) with its Celery worker,
-packaged for a **stateless** deployment: no PersistentVolumeClaims.
+packaged to keep almost everything off local disk: the only volume is a tiny tree-registry PVC.
 
 | Data | Where it lives |
 | --- | --- |
@@ -11,9 +11,11 @@ packaged for a **stateless** deployment: no PersistentVolumeClaims.
 | Media | S3-compatible bucket (`s3.*`), e.g. Cloudflare R2 |
 | Celery broker/results, rate limits, thumbnail/request/persistent caches | Redis/Valkey (`redis.*`) |
 | Export/report scratch files | `emptyDir` shared by the web and Celery containers |
+| Per-tree registry dir (`/root/.gramps/grampsdb/<id>`: name, backend, settings) | small PVC (`persistence.*`, 1Gi). Required: without it tree creation fails and trees vanish on restart |
 
 Web and Celery are containers of one pod because Celery writes exports and reports that the web
-process serves from the shared scratch dir. Scale with `replicaCount`.
+process serves from the shared scratch dir. The registry PVC is ReadWriteOnce, so keep `replicaCount: 1`
+(the Deployment uses `Recreate`).
 
 ## Install
 

@@ -1,0 +1,12 @@
+gramps:
+  baseURL: https://tree.example.com
+secretKey:
+  existingSecret: gramps-secret-key
+postgres:
+  enabled: false
+redis:
+  enabled: false
+s3:
+  enabled: false
+persistence:
+  existingClaim: gramps-tree-registry
