@@ -1,0 +1,11 @@
+Gramps Web is running as {{ include "gramps-web.fullname" . }} in {{ .Release.Namespace }}.
+{{- if .Values.ingress.enabled }}
+URL: {{ .Values.gramps.baseURL }}
+{{- end }}
+{{- if .Values.oidc.enabled }}
+
+OIDC redirect URI to register with the provider (no wildcard): {{ trimSuffix "/" .Values.gramps.baseURL }}/api/oidc/callback/custom
+{{- end }}
+
+With gramps.tree=* the first visit shows the owner-account setup form; create it before exposing the
+site more widely. replicaCount > 1 is fine: all state is in Postgres, S3 and Redis.
