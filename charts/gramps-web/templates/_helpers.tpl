@@ -66,6 +66,13 @@ redis://{{ $r.host }}:{{ $r.port }}/{{ $db }}
   value: {{ .Values.gramps.registrationDisabled | quote }}
 - name: GRAMPSWEB_DISABLE_TELEMETRY
   value: {{ .Values.gramps.disableTelemetry | quote }}
+# The image defaults these to /app/cache, which each container has to itself. Uploads (imports,
+# media archives, backup restores) are staged by the web container and read by Celery, and
+# reports/exports go the other way, so both must be on the /tmp emptyDir the containers share.
+- name: GRAMPSWEB_EXPORT_DIR
+  value: {{ .Values.gramps.exportDir | quote }}
+- name: GRAMPSWEB_REPORT_DIR
+  value: {{ .Values.gramps.reportDir | quote }}
 - name: GRAMPSWEB_MEDIA_PREFIX_TREE
   value: {{ .Values.gramps.mediaPrefixTree | quote }}
 - name: GRAMPSWEB_SECRET_KEY
