@@ -76,7 +76,7 @@ externalBridges: {}
 
 # -- Image for the init container that prepares each external bridge's directory (needs `sh`,
 # `install`). Only rendered when an external bridge is enabled.
-initImage: busybox:1.37.0
+initImage: busybox:1.38.0@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
 
 # -- Default resources for each bridge container.
 resources:
