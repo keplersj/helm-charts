@@ -1,0 +1,31 @@
+gramps:
+  baseURL: https://tree.example.com
+secretKey:
+  existingSecret: gramps-secret-key
+postgres:
+  host: postgresql-rw.postgres.svc
+  existingSecret: gramps-postgres
+redis:
+  host: valkey.valkey.svc
+  username: gramps
+  existingSecret:
+    name: gramps-redis
+s3:
+  bucket: gramps-media
+  endpointURL: https://example.r2.cloudflarestorage.com
+  existingSecret: gramps-s3
+oidc:
+  enabled: true
+  issuer: https://cloud.example.com/apps/oidc
+  existingSecret: gramps-oidc
+  roleClaim: groups
+  groups:
+    admin: admin
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: tree.example.com
+  tls:
+    - secretName: tree-tls
+      hosts: [tree.example.com]

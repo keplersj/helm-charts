@@ -1,0 +1,146 @@
+nameOverride: ""
+fullnameOverride: ""
+
+# Web + Celery run as containers of ONE pod because exports/reports are written by Celery and
+# served by the web process through a shared emptyDir. Scale with replicaCount (each pod gets both).
+replicaCount: 1
+
+image:
+  repository: ghcr.io/gramps-project/grampsweb
+  # Defaults to the chart appVersion.
+  tag: ""
+  # Pin for reproducibility, e.g. sha256:...
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+gramps:
+  # "*" enables multi-tree mode, which is required to host trees in shared PostgreSQL.
+  tree: "*"
+  # Public URL; used for password-reset links and OIDC.
+  baseURL: ""
+  mediaPrefixTree: true
+  registrationDisabled: true
+  disableTelemetry: true
+
+# GRAMPSWEB_SECRET_KEY. Must be stable: it signs sessions and encrypts nothing at rest, but
+# changing it logs everyone out.
+secretKey:
+  existingSecret: ""
+  key: secret-key
+
+# Family trees (sharedpostgresql), the user database and the search index all live in Postgres.
+# Needs the server to have the locales Gramps sorts by.
+postgres:
+  enabled: true
+  host: ""
+  port: 5432
+  # Database the new trees are created in (the Gramps SharedPostgreSQL addon creates tables here).
+  treeDatabase: gramps
+  userDatabase: grampswebuser
+  # Secret holding username + password. The password is placed into connection URIs, so it must be
+  # URL-safe (alphanumeric).
+  existingSecret: ""
+  usernameKey: username
+  passwordKey: password
+
+# Celery broker/results, rate limiting and the thumbnail/request/persistent caches.
+redis:
+  enabled: true
+  host: ""
+  port: 6379
+  # ACL user, if the server uses them. Ignored without existingSecret.
+  username: ""
+  # Secret with the password. Must be URL-safe (it is embedded in redis:// URLs).
+  existingSecret:
+    name: ""
+    key: password
+  databases:
+    celery: 0
+    rateLimit: 1
+    thumbnailCache: 2
+    requestCache: 3
+    persistentCache: 4
+
+# Media files in S3-compatible storage (GRAMPSWEB_MEDIA_BASE_DIR=s3://bucket).
+s3:
+  enabled: true
+  bucket: ""
+  region: auto
+  # Non-AWS stores, e.g. https://<account>.r2.cloudflarestorage.com
+  endpointURL: ""
+  # Cloudflare R2 and some others reject boto3's default checksum headers.
+  checksumWhenRequired: true
+  existingSecret: ""
+  accessKeyIdKey: access-key-id
+  secretAccessKeyKey: secret-access-key
+
+oidc:
+  enabled: false
+  issuer: ""
+  name: SSO
+  scopes: "openid email profile"
+  autoRedirect: false
+  disableLocalAuth: false
+  existingSecret: ""
+  clientIdKey: client-id
+  clientSecretKey: client-secret
+  # Optional role mapping from a groups claim.
+  roleClaim: ""
+  groups:
+    admin: ""
+    editor: ""
+    member: ""
+
+celery:
+  enabled: true
+  concurrency: 2
+  resources: {}
+
+extraEnv: []
+extraVolumes: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podLabels: {}
+podAnnotations: {}
+podSecurityContext: {}
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 5000
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: gramps.example.com
+  tls: []
+
+probes:
+  liveness:
+    httpGet:
+      path: /api/metadata/
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 10
+  readiness:
+    httpGet:
+      path: /api/metadata/
+      port: http
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+resources: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
