@@ -10,7 +10,7 @@ packaged to keep almost everything off local disk: the only volume is a tiny tre
 | Search index | PostgreSQL (`postgres.treeDatabase`) |
 | Media | S3-compatible bucket (`s3.*`), e.g. Cloudflare R2 |
 | Celery broker/results, rate limits, thumbnail/request/persistent caches | Redis/Valkey (`redis.*`) |
-| Export/report scratch files | `emptyDir` shared by the web and Celery containers |
+| Upload/export/report scratch files (`gramps.exportDir`, `gramps.reportDir`) | `/tmp` `emptyDir` shared by the web and Celery containers |
 | Per-tree registry dir (`/root/.gramps/grampsdb/<id>`: name, backend, settings) | small PVC (`persistence.*`, 1Gi). Required: without it tree creation fails and trees vanish on restart |
 
 Web and Celery are containers of one pod because Celery writes exports and reports that the web

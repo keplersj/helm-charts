@@ -24,6 +24,10 @@ gramps:
   mediaPrefixTree: true
   registrationDisabled: true
   disableTelemetry: true
+  # Scratch dirs for uploads, exports and reports. Must be under /tmp, the emptyDir shared by the
+  # web and Celery containers (the image's /app/cache defaults are per-container).
+  exportDir: /tmp/export
+  reportDir: /tmp/reports
 
 # GRAMPSWEB_SECRET_KEY. Must be stable: it signs sessions and encrypts nothing at rest, but
 # changing it logs everyone out.
